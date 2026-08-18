@@ -1,0 +1,4 @@
+First internal release of Meditation Timer.
+Configurable interval and completion dings with screen-locked timing.
+Pause, resume, restart, completion logging, log deletion, and text sharing.
+Dark Purple, Dark Blue, Dark Gray, and Black backgrounds.
