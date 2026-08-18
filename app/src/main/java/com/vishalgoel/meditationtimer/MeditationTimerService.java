@@ -40,6 +40,8 @@ public final class MeditationTimerService extends Service {
     public static final String EXTRA_DIM_SCREEN = "dim_screen";
     public static final String EXTRA_CHIMES_ENABLED = "chimes_enabled";
     public static final String EXTRA_VIBRATION_ENABLED = "vibration_enabled";
+    public static final String EXTRA_CHIME_SOUND_ID = "chime_sound_id";
+    public static final String EXTRA_DISPLAY_MODE_ID = "display_mode_id";
 
     private static final String CHANNEL_TIMER = "meditation_timer_running";
     private static final int NOTIFICATION_TIMER = 2101;
@@ -125,7 +127,9 @@ public final class MeditationTimerService extends Service {
         state = TimerState.start(schedule, System.currentTimeMillis(),
                 SystemClock.elapsedRealtime(), intent.getBooleanExtra(EXTRA_DIM_SCREEN, true),
                 intent.getBooleanExtra(EXTRA_CHIMES_ENABLED, true),
-                intent.getBooleanExtra(EXTRA_VIBRATION_ENABLED, false));
+                intent.getBooleanExtra(EXTRA_VIBRATION_ENABLED, false),
+                intent.getStringExtra(EXTRA_CHIME_SOUND_ID),
+                intent.getStringExtra(EXTRA_DISPLAY_MODE_ID));
         stateStore.save(state);
         diagnostics.record("timer.start duration_ms=" + state.durationMs);
         acquireWakeLock();
@@ -205,7 +209,8 @@ public final class MeditationTimerService extends Service {
             List<TimerSchedule.Cue> cues = schedule.cuesBetween(
                     state.processedThroughActiveMs, elapsed);
             for (TimerSchedule.Cue cue : cues) {
-                dingPlayer.play(cue.dingCount(), state.chimesEnabled, state.vibrationEnabled);
+                dingPlayer.play(cue.dingCount(), state.chimesEnabled, state.vibrationEnabled,
+                        state.chimeSoundId);
                 long jitter = Math.max(0L, elapsed - cue.elapsedMs());
                 diagnostics.recordCueJitter(jitter);
                 diagnostics.record("timer.ding count=" + cue.dingCount() + " jitter_ms=" + jitter);
@@ -239,9 +244,10 @@ public final class MeditationTimerService extends Service {
         if (naturalCompletion) {
             activeDuration = state.durationMs;
             state.activeBeforeSegmentMs = state.durationMs;
-            dingPlayer.play(state.finishDings, state.chimesEnabled, state.vibrationEnabled);
+            dingPlayer.play(state.finishDings, state.chimesEnabled, state.vibrationEnabled,
+                    state.chimeSoundId);
             completionSoundUntilRealtimeMs = SystemClock.elapsedRealtime()
-                    + Math.max(180L, (state.finishDings - 1L) * 420L + 180L);
+                    + ToneDingPlayer.playbackSpanMs(state.finishDings, state.chimeSoundId);
         } else {
             completionSoundUntilRealtimeMs = 0L;
         }

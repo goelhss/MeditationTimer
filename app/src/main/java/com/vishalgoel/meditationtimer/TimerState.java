@@ -14,6 +14,8 @@ public final class TimerState {
     public boolean dimScreen;
     public boolean chimesEnabled;
     public boolean vibrationEnabled;
+    public String chimeSoundId;
+    public String displayModeId;
 
     public static TimerState start(TimerSchedule schedule, long wallMs, long realtimeMs,
                                    boolean dimScreen) {
@@ -23,6 +25,21 @@ public final class TimerState {
     public static TimerState start(TimerSchedule schedule, long wallMs, long realtimeMs,
                                    boolean dimScreen, boolean chimesEnabled,
                                    boolean vibrationEnabled) {
+        return start(schedule, wallMs, realtimeMs, dimScreen, chimesEnabled,
+                vibrationEnabled, ChimeSound.DEFAULT.id());
+    }
+
+    public static TimerState start(TimerSchedule schedule, long wallMs, long realtimeMs,
+                                   boolean dimScreen, boolean chimesEnabled,
+                                   boolean vibrationEnabled, String chimeSoundId) {
+        return start(schedule, wallMs, realtimeMs, dimScreen, chimesEnabled,
+                vibrationEnabled, chimeSoundId, TimerDisplayMode.DEFAULT.id());
+    }
+
+    public static TimerState start(TimerSchedule schedule, long wallMs, long realtimeMs,
+                                   boolean dimScreen, boolean chimesEnabled,
+                                   boolean vibrationEnabled, String chimeSoundId,
+                                   String displayModeId) {
         if (!chimesEnabled && !vibrationEnabled) {
             throw new IllegalArgumentException("Enable Chimes, Vibrate, or both.");
         }
@@ -40,6 +57,8 @@ public final class TimerState {
         state.dimScreen = dimScreen;
         state.chimesEnabled = chimesEnabled;
         state.vibrationEnabled = vibrationEnabled;
+        state.chimeSoundId = ChimeSound.fromId(chimeSoundId).id();
+        state.displayModeId = TimerDisplayMode.fromId(displayModeId).id();
         return state;
     }
 

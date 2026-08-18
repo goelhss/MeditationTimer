@@ -18,7 +18,11 @@ public final class CueModeSourceTest {
         assertTrue(service.contains("state.chimesEnabled, state.vibrationEnabled"));
         assertTrue(store.contains("chimes_enabled"));
         assertTrue(store.contains("vibration_enabled"));
+        assertTrue(store.contains("chime_sound_id"));
         assertTrue(player.contains("VibrationEffect.createOneShot"));
         assertTrue(player.contains("if (chimesEnabled)"));
+        assertTrue(player.contains("AudioAttributes.USAGE_ALARM"));
+        assertTrue(player.contains("ChimeSynthesizer::synthesize"));
+        assertTrue(service.contains("state.chimeSoundId"));
     }
 }

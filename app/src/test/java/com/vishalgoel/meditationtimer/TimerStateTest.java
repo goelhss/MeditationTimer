@@ -51,6 +51,13 @@ public final class TimerStateTest {
 
         assertFalse(vibrationOnly.chimesEnabled);
         assertTrue(vibrationOnly.vibrationEnabled);
+        assertEquals(ChimeSound.TEMPLE_BELL.id(), vibrationOnly.chimeSoundId);
+        assertEquals(TimerDisplayMode.DIGITAL.id(), vibrationOnly.displayModeId);
+        TimerState bowl = TimerState.start(schedule, 1_000L, 10_000L,
+                true, true, false, ChimeSound.SINGING_BOWL.id(),
+                TimerDisplayMode.ANALOG.id());
+        assertEquals(ChimeSound.SINGING_BOWL.id(), bowl.chimeSoundId);
+        assertEquals(TimerDisplayMode.ANALOG.id(), bowl.displayModeId);
         assertThrows(IllegalArgumentException.class, () ->
                 TimerState.start(schedule, 1_000L, 10_000L, true, false, false));
     }

@@ -15,7 +15,9 @@
 - One additional ding defaults to every 10 minutes; therefore minute 10 produces two dings.
 - Completion defaults to 10 dings and replaces any periodic ding at the completion instant.
 - Chimes default on and vibration defaults off. At least one must remain enabled, allowing chimes only, vibration only, or both.
-- Preview uses the same selected chime/vibration mode and cue pattern as the running timer.
+- The Timer tab offers Temple Bell, Singing Bowl, Crystal Chime, and the original Classic Ding. Temple Bell is the default; the three new synthesized sounds use full alarm-stream volume, harmonic decay, and audible echo/reverb tails.
+- Preview uses the same selected sound and chime/vibration mode as the running timer.
+- Timer display offers a persistent choice between the existing large digital countdown and a large analog countdown dial. Digital is the default. The analog dial shows 60 tick marks, remaining progress, a moving hand, and remaining whole minutes.
 - Dim screen defaults on and reduces brightness while keeping the countdown visible.
 - Background color is persistent and configurable as Dark Purple (default), Dark Blue, Dark Gray, or Black while preserving readable high-contrast controls.
 - Start shows a large countdown on the same screen.

@@ -23,6 +23,8 @@ run_always() {
     "$GRADLE_BIN" :app:testDebugUnitTest \
         --tests com.vishalgoel.meditationtimer.TimerScheduleTest \
         --tests com.vishalgoel.meditationtimer.TimerStateTest \
+        --tests com.vishalgoel.meditationtimer.ChimeSoundTest \
+        --tests com.vishalgoel.meditationtimer.TimerDisplayModeTest \
         --tests com.vishalgoel.meditationtimer.ReminderScheduleTest \
         --tests com.vishalgoel.meditationtimer.MeditationLogCodecTest \
         --tests com.vishalgoel.meditationtimer.AppPolicySourceTest

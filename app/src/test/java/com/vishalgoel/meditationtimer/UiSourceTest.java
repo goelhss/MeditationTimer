@@ -24,6 +24,11 @@ public final class UiSourceTest {
         assertTrue(source.contains("getBoolean(\"dim\", true)"));
         assertTrue(source.contains("getBoolean(\"chimes\", true)"));
         assertTrue(source.contains("getBoolean(\"vibrate\", false)"));
+        assertTrue(source.contains("Ding sound"));
+        assertTrue(source.contains("chimeSoundSpinner"));
+        assertTrue(source.contains("Timer display"));
+        assertTrue(source.contains("timerDisplaySpinner"));
+        assertTrue(source.contains("new AnalogTimerView"));
     }
 
     @Test
@@ -33,7 +38,7 @@ public final class UiSourceTest {
 
         assertTrue(source.contains("Background color"));
         assertTrue(source.contains("Check for Updates"));
-        assertTrue(source.contains("What’s new in 1.1.0"));
+        assertTrue(source.contains("What’s new in 1.2.0"));
         assertTrue(source.contains("Share Debug logs"));
         assertTrue(source.contains("View MIT License"));
         assertTrue(source.contains("LotusSplashView.create"));

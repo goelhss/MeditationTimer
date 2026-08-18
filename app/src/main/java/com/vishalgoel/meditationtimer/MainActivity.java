@@ -74,6 +74,7 @@ public final class MainActivity extends Activity {
     private Button reminderTab;
     private Button aboutTab;
     private TextView countdownView;
+    private AnalogTimerView analogTimerView;
     private TextView activeStatusView;
     private String selectedTab = TAB_TIMER;
     private boolean mainUiShown;
@@ -101,9 +102,14 @@ public final class MainActivity extends Activity {
             String key = state.active + ":" + state.paused + ":" + state.startWallMs;
             if (!key.equals(renderedStateKey) && TAB_TIMER.equals(selectedTab)) {
                 renderSelectedTab();
-            } else if (state.active && countdownView != null) {
-                countdownView.setText(MeditationTimerService.formatCountdown(
-                        state.remainingMs(SystemClock.elapsedRealtime())));
+            } else if (state.active && (countdownView != null || analogTimerView != null)) {
+                long remaining = state.remainingMs(SystemClock.elapsedRealtime());
+                if (countdownView != null) {
+                    countdownView.setText(MeditationTimerService.formatCountdown(remaining));
+                }
+                if (analogTimerView != null) {
+                    analogTimerView.setTime(remaining, state.durationMs);
+                }
                 activeStatusView.setText(state.paused ? "Paused" : "Meditating");
                 applyScreenMode(state);
             }
@@ -235,6 +241,8 @@ public final class MainActivity extends Activity {
     }
 
     private void renderTimerSetup() {
+        countdownView = null;
+        analogTimerView = null;
         SharedPreferences settings = getSharedPreferences(SETTINGS_PREFS, MODE_PRIVATE);
         LinearLayout form = pageColumn();
         form.addView(sectionTitle("Set your meditation"), matchWrap());
@@ -250,6 +258,10 @@ public final class MainActivity extends Activity {
 
         CheckBox chimes = optionCheckBox("Chimes", settings.getBoolean("chimes", true));
         CheckBox vibrate = optionCheckBox("Vibrate", settings.getBoolean("vibrate", false));
+        Spinner chimeSound = chimeSoundSpinner(settings.getString("chime_sound",
+                ChimeSound.DEFAULT.id()));
+        Spinner timerDisplay = timerDisplaySpinner(settings.getString("timer_display",
+                TimerDisplayMode.DEFAULT.id()));
         android.widget.CompoundButton.OnCheckedChangeListener cueModeListener = (button, checked) -> {
             if (!chimes.isChecked() && !vibrate.isChecked()) {
                 button.setChecked(true);
@@ -261,6 +273,8 @@ public final class MainActivity extends Activity {
         vibrate.setOnCheckedChangeListener(cueModeListener);
         form.addView(chimes, matchWrap());
         form.addView(vibrate, matchWrap());
+        form.addView(labeledControl("Ding sound", chimeSound));
+        form.addView(labeledControl("Timer display", timerDisplay));
 
         CheckBox dim = new CheckBox(this);
         dim.setText("Dim screen while countdown is visible");
@@ -272,7 +286,8 @@ public final class MainActivity extends Activity {
 
         Button preview = actionButton("Preview cue", false);
         preview.setOnClickListener(view -> previewPlayer.play(1,
-                chimes.isChecked(), vibrate.isChecked()));
+                chimes.isChecked(), vibrate.isChecked(),
+                ((ChimeSound) chimeSound.getSelectedItem()).id()));
         form.addView(preview, fullButtonParams());
 
         Button start = actionButton("▶ Start", true);
@@ -294,6 +309,10 @@ public final class MainActivity extends Activity {
                         .putInt("finish", finishValue)
                         .putBoolean("chimes", chimes.isChecked())
                         .putBoolean("vibrate", vibrate.isChecked())
+                        .putString("chime_sound",
+                                ((ChimeSound) chimeSound.getSelectedItem()).id())
+                        .putString("timer_display",
+                                ((TimerDisplayMode) timerDisplay.getSelectedItem()).id())
                         .putBoolean("dim", dim.isChecked())
                         .apply();
                 requestNotificationPermissionIfNeeded();
@@ -307,6 +326,10 @@ public final class MainActivity extends Activity {
                                 chimes.isChecked())
                         .putExtra(MeditationTimerService.EXTRA_VIBRATION_ENABLED,
                                 vibrate.isChecked())
+                        .putExtra(MeditationTimerService.EXTRA_CHIME_SOUND_ID,
+                                ((ChimeSound) chimeSound.getSelectedItem()).id())
+                        .putExtra(MeditationTimerService.EXTRA_DISPLAY_MODE_ID,
+                                ((TimerDisplayMode) timerDisplay.getSelectedItem()).id())
                         .putExtra(MeditationTimerService.EXTRA_DIM_SCREEN, dim.isChecked());
                 startForegroundService(service);
                 promptExactAlarmAccessIfNeeded();
@@ -326,6 +349,8 @@ public final class MainActivity extends Activity {
     }
 
     private void renderActiveTimer(TimerState state) {
+        countdownView = null;
+        analogTimerView = null;
         LinearLayout page = pageColumn();
         activeStatusView = new TextView(this);
         activeStatusView.setText(state.paused ? "Paused" : "Meditating");
@@ -335,28 +360,39 @@ public final class MainActivity extends Activity {
         activeStatusView.setGravity(Gravity.CENTER);
         page.addView(activeStatusView, matchWrap());
 
-        countdownView = new TextView(this);
-        countdownView.setText(MeditationTimerService.formatCountdown(
-                state.remainingMs(SystemClock.elapsedRealtime())));
-        countdownView.setTextSize(58);
-        countdownView.setTextColor(Color.rgb(22, 58, 107));
-        countdownView.setTypeface(Typeface.create("sans-serif-condensed", Typeface.BOLD));
-        countdownView.setGravity(Gravity.CENTER);
-        countdownView.setPadding(dp(8), dp(42), dp(8), dp(42));
-        GradientDrawable clockBackground = new GradientDrawable();
-        clockBackground.setCornerRadius(dp(28));
-        clockBackground.setColor(Color.rgb(221, 238, 255));
-        clockBackground.setStroke(dp(2), Color.rgb(56, 108, 176));
-        countdownView.setBackground(clockBackground);
-        LinearLayout.LayoutParams clockParams = fullButtonParams();
+        LinearLayout.LayoutParams clockParams;
+        if (TimerDisplayMode.fromId(state.displayModeId) == TimerDisplayMode.ANALOG) {
+            analogTimerView = new AnalogTimerView(this);
+            analogTimerView.setTime(state.remainingMs(SystemClock.elapsedRealtime()),
+                    state.durationMs);
+            clockParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                    dp(340));
+        } else {
+            countdownView = new TextView(this);
+            countdownView.setText(MeditationTimerService.formatCountdown(
+                    state.remainingMs(SystemClock.elapsedRealtime())));
+            countdownView.setTextSize(58);
+            countdownView.setTextColor(Color.rgb(22, 58, 107));
+            countdownView.setTypeface(Typeface.create("sans-serif-condensed", Typeface.BOLD));
+            countdownView.setGravity(Gravity.CENTER);
+            countdownView.setPadding(dp(8), dp(42), dp(8), dp(42));
+            GradientDrawable clockBackground = new GradientDrawable();
+            clockBackground.setCornerRadius(dp(28));
+            clockBackground.setColor(Color.rgb(221, 238, 255));
+            clockBackground.setStroke(dp(2), Color.rgb(56, 108, 176));
+            countdownView.setBackground(clockBackground);
+            clockParams = fullButtonParams();
+        }
         clockParams.topMargin = dp(18);
         clockParams.bottomMargin = dp(18);
-        page.addView(countdownView, clockParams);
+        page.addView(analogTimerView != null ? analogTimerView : countdownView, clockParams);
 
         TextView detail = bodyText("Primary ding every " + state.primaryMs / TimerSchedule.MINUTE_MS
                 + " min · additional ding every " + state.additionalMs / TimerSchedule.MINUTE_MS
                 + " min\nCompletion: " + state.finishDings + " dings"
                 + " · " + cueModeLabel(state.chimesEnabled, state.vibrationEnabled)
+                + (state.chimesEnabled ? " · " + ChimeSound.fromId(state.chimeSoundId).label() : "")
+                + " · " + TimerDisplayMode.fromId(state.displayModeId).label()
                 + (state.dimScreen ? " · screen dimming on" : ""));
         detail.setGravity(Gravity.CENTER);
         page.addView(detail, matchWrap());
@@ -712,7 +748,9 @@ public final class MainActivity extends Activity {
         page.addView(clearDiagnostics, clearParams);
 
         page.addView(subsectionTitle("Version history"), matchWrap());
-        page.addView(bodyText("1.1.0 · August 18, 2026\n"
+        page.addView(bodyText("1.2.0 · August 18, 2026\n"
+                + "Resonant sound choices plus large digital and analog timer displays.\n\n"
+                + "1.1.0 · August 18, 2026\n"
                 + "Large lotus launch screen, chime/vibration modes, and configurable meditation reminders.\n\n"
                 + "1.0.0 · August 18, 2026\n"
                 + "Timer, overlapping interval dings, screen-locked operation, completion prompt, logs, sharing, and diagnostics."),
@@ -733,11 +771,11 @@ public final class MainActivity extends Activity {
         }
         preferences.edit().putInt("last_whats_new", BuildConfig.VERSION_CODE).apply();
         new AlertDialog.Builder(this)
-                .setTitle("What’s new in 1.1.0")
-                .setMessage("• Large lotus launch screen with no countdown\n"
-                        + "• Chimes, vibration, or both for every cue\n"
-                        + "• Meditation Reminder tab with daily, weekday, weekend, or selected-day schedules\n"
-                        + "• Reminder notifications open the Timer tab")
+                .setTitle("What’s new in 1.2.0")
+                .setMessage("• Temple Bell, Singing Bowl, Crystal Chime, and Classic Ding\n"
+                        + "• Louder alarm-volume playback with warm reverberating tails\n"
+                        + "• Choose a large digital countdown or analog countdown dial\n"
+                        + "• Preview uses your selected sound")
                 .setPositiveButton("Continue", null)
                 .show();
     }
@@ -1120,6 +1158,67 @@ public final class MainActivity extends Activity {
             @Override
             public void onNothingSelected(android.widget.AdapterView<?> parent) {}
         });
+        return spinner;
+    }
+
+    private Spinner chimeSoundSpinner(String selectedId) {
+        ChimeSound[] sounds = ChimeSound.values();
+        ArrayAdapter<ChimeSound> adapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, sounds) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                TextView view = (TextView) super.getView(position, convertView, parent);
+                view.setText(sounds[position].label());
+                view.setTextColor(primaryTextColor());
+                view.setPadding(dp(10), dp(8), dp(10), dp(8));
+                return view;
+            }
+
+            @Override
+            public View getDropDownView(int position, View convertView, ViewGroup parent) {
+                TextView view = (TextView) super.getDropDownView(position, convertView, parent);
+                view.setText(sounds[position].label());
+                view.setTextColor(Color.rgb(38, 53, 68));
+                view.setBackgroundColor(Color.WHITE);
+                view.setPadding(dp(12), dp(14), dp(12), dp(14));
+                return view;
+            }
+        };
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        Spinner spinner = new Spinner(this);
+        spinner.setAdapter(adapter);
+        ChimeSound selected = ChimeSound.fromId(selectedId);
+        spinner.setSelection(selected.ordinal(), false);
+        return spinner;
+    }
+
+    private Spinner timerDisplaySpinner(String selectedId) {
+        TimerDisplayMode[] modes = TimerDisplayMode.values();
+        ArrayAdapter<TimerDisplayMode> adapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, modes) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                TextView view = (TextView) super.getView(position, convertView, parent);
+                view.setText(modes[position].label());
+                view.setTextColor(primaryTextColor());
+                view.setPadding(dp(10), dp(8), dp(10), dp(8));
+                return view;
+            }
+
+            @Override
+            public View getDropDownView(int position, View convertView, ViewGroup parent) {
+                TextView view = (TextView) super.getDropDownView(position, convertView, parent);
+                view.setText(modes[position].label());
+                view.setTextColor(Color.rgb(38, 53, 68));
+                view.setBackgroundColor(Color.WHITE);
+                view.setPadding(dp(12), dp(14), dp(12), dp(14));
+                return view;
+            }
+        };
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        Spinner spinner = new Spinner(this);
+        spinner.setAdapter(adapter);
+        spinner.setSelection(TimerDisplayMode.fromId(selectedId).ordinal(), false);
         return spinner;
     }
 

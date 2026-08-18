@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0 - 2026-08-18
+
+- Added a Ding sound dropdown with Temple Bell, Singing Bowl, Crystal Chime, and Classic Ding.
+- Made Temple Bell the default and added louder alarm-volume playback with harmonic decay and reverberating tails.
+- Made Preview and background timer cues use the selected sound consistently.
+- Added a persistent Timer display choice between a large digital countdown and an analog countdown dial.
+
 ## 1.1.0 - 2026-08-18
 
 - Replaced the countdown splash with a large lotus launch screen.

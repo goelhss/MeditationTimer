@@ -26,6 +26,8 @@ public final class TimerStateStore {
                 .putBoolean("dim_screen", state.dimScreen)
                 .putBoolean("chimes_enabled", state.chimesEnabled)
                 .putBoolean("vibration_enabled", state.vibrationEnabled)
+                .putString("chime_sound_id", ChimeSound.fromId(state.chimeSoundId).id())
+                .putString("display_mode_id", TimerDisplayMode.fromId(state.displayModeId).id())
                 .apply();
     }
 
@@ -44,6 +46,10 @@ public final class TimerStateStore {
         state.dimScreen = prefs.getBoolean("dim_screen", true);
         state.chimesEnabled = prefs.getBoolean("chimes_enabled", true);
         state.vibrationEnabled = prefs.getBoolean("vibration_enabled", false);
+        state.chimeSoundId = ChimeSound.fromId(prefs.getString("chime_sound_id",
+                ChimeSound.DEFAULT.id())).id();
+        state.displayModeId = TimerDisplayMode.fromId(prefs.getString("display_mode_id",
+                TimerDisplayMode.DEFAULT.id())).id();
         return state;
     }
 
