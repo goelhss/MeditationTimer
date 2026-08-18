@@ -397,6 +397,23 @@ public final class MainActivity extends Activity {
         detail.setGravity(Gravity.CENTER);
         page.addView(detail, matchWrap());
 
+        page.addView(subsectionTitle("Live cues"), matchWrap());
+        LinearLayout cueControls = new LinearLayout(this);
+        cueControls.setOrientation(LinearLayout.HORIZONTAL);
+        CheckBox liveChimes = optionCheckBox("Chimes", state.chimesEnabled);
+        CheckBox liveVibrate = optionCheckBox("Vibrate", state.vibrationEnabled);
+        android.widget.CompoundButton.OnCheckedChangeListener liveCueListener =
+                (button, checked) -> sendCueMode(liveChimes.isChecked(),
+                        liveVibrate.isChecked());
+        liveChimes.setOnCheckedChangeListener(liveCueListener);
+        liveVibrate.setOnCheckedChangeListener(liveCueListener);
+        cueControls.addView(liveChimes, weighted());
+        cueControls.addView(liveVibrate, weighted());
+        page.addView(cueControls, matchWrap());
+        TextView cueHint = bodyText("Changes take effect immediately. Turn both off for silence.");
+        cueHint.setGravity(Gravity.CENTER);
+        page.addView(cueHint, matchWrap());
+
         LinearLayout controls = new LinearLayout(this);
         controls.setOrientation(LinearLayout.HORIZONTAL);
         Button pauseResume = actionButton(state.paused ? "▶ Resume" : "Ⅱ Pause", true);
@@ -748,7 +765,9 @@ public final class MainActivity extends Activity {
         page.addView(clearDiagnostics, clearParams);
 
         page.addView(subsectionTitle("Version history"), matchWrap());
-        page.addView(bodyText("1.2.0 · August 18, 2026\n"
+        page.addView(bodyText("1.3.0 · August 18, 2026\n"
+                + "Live Chimes and Vibrate controls, including silent mode during a running session.\n\n"
+                + "1.2.0 · August 18, 2026\n"
                 + "Resonant sound choices plus large digital and analog timer displays.\n\n"
                 + "1.1.0 · August 18, 2026\n"
                 + "Large lotus launch screen, chime/vibration modes, and configurable meditation reminders.\n\n"
@@ -771,11 +790,10 @@ public final class MainActivity extends Activity {
         }
         preferences.edit().putInt("last_whats_new", BuildConfig.VERSION_CODE).apply();
         new AlertDialog.Builder(this)
-                .setTitle("What’s new in 1.2.0")
-                .setMessage("• Temple Bell, Singing Bowl, Crystal Chime, and Classic Ding\n"
-                        + "• Louder alarm-volume playback with warm reverberating tails\n"
-                        + "• Choose a large digital countdown or analog countdown dial\n"
-                        + "• Preview uses your selected sound")
+                .setTitle("What’s new in 1.3.0")
+                .setMessage("• Live Chimes and Vibrate switches on the running timer\n"
+                        + "• Changes take effect without pausing or restarting\n"
+                        + "• Turn both switches off for a silent session")
                 .setPositiveButton("Continue", null)
                 .show();
     }
@@ -842,6 +860,15 @@ public final class MainActivity extends Activity {
 
     private void sendTimerAction(String action) {
         startForegroundService(new Intent(this, MeditationTimerService.class).setAction(action));
+        handler.postDelayed(this::refreshForStateChange, 120L);
+    }
+
+    private void sendCueMode(boolean chimesEnabled, boolean vibrationEnabled) {
+        Intent intent = new Intent(this, MeditationTimerService.class)
+                .setAction(MeditationTimerService.ACTION_SET_CUES)
+                .putExtra(MeditationTimerService.EXTRA_CHIMES_ENABLED, chimesEnabled)
+                .putExtra(MeditationTimerService.EXTRA_VIBRATION_ENABLED, vibrationEnabled);
+        startForegroundService(intent);
         handler.postDelayed(this::refreshForStateChange, 120L);
     }
 
@@ -985,7 +1012,10 @@ public final class MainActivity extends Activity {
         if (chimesEnabled && vibrationEnabled) {
             return "chimes + vibration";
         }
-        return chimesEnabled ? "chimes" : "vibration";
+        if (chimesEnabled) {
+            return "chimes";
+        }
+        return vibrationEnabled ? "vibration" : "silent";
     }
 
     private String formatClockTime(int hour, int minute) {

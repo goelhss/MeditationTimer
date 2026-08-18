@@ -74,6 +74,11 @@ public final class TimerState {
         return Math.max(0L, durationMs - elapsedActiveMs(realtimeMs));
     }
 
+    public void setCueMode(boolean chimesEnabled, boolean vibrationEnabled) {
+        this.chimesEnabled = chimesEnabled;
+        this.vibrationEnabled = vibrationEnabled;
+    }
+
     public void pause(long realtimeMs) {
         if (!active || paused) {
             return;

@@ -29,6 +29,9 @@ public final class UiSourceTest {
         assertTrue(source.contains("Timer display"));
         assertTrue(source.contains("timerDisplaySpinner"));
         assertTrue(source.contains("new AnalogTimerView"));
+        assertTrue(source.contains("Live cues"));
+        assertTrue(source.contains("sendCueMode"));
+        assertTrue(source.contains("Turn both off for silence"));
     }
 
     @Test
@@ -38,7 +41,7 @@ public final class UiSourceTest {
 
         assertTrue(source.contains("Background color"));
         assertTrue(source.contains("Check for Updates"));
-        assertTrue(source.contains("What’s new in 1.2.0"));
+        assertTrue(source.contains("What’s new in 1.3.0"));
         assertTrue(source.contains("Share Debug logs"));
         assertTrue(source.contains("View MIT License"));
         assertTrue(source.contains("LotusSplashView.create"));

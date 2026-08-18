@@ -24,5 +24,8 @@ public final class CueModeSourceTest {
         assertTrue(player.contains("AudioAttributes.USAGE_ALARM"));
         assertTrue(player.contains("ChimeSynthesizer::synthesize"));
         assertTrue(service.contains("state.chimeSoundId"));
+        assertTrue(service.contains("ACTION_SET_CUES"));
+        assertTrue(service.contains("state.setCueMode"));
+        assertTrue(service.contains("stateStore.save(state)"));
     }
 }

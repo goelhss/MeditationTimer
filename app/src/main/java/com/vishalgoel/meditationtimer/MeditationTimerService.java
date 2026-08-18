@@ -26,6 +26,7 @@ public final class MeditationTimerService extends Service {
     public static final String ACTION_RESUME = "com.vishalgoel.meditationtimer.RESUME";
     public static final String ACTION_RESTART = "com.vishalgoel.meditationtimer.RESTART";
     public static final String ACTION_END = "com.vishalgoel.meditationtimer.END";
+    public static final String ACTION_SET_CUES = "com.vishalgoel.meditationtimer.SET_CUES";
     public static final String ACTION_RECOVER = "com.vishalgoel.meditationtimer.RECOVER";
     public static final String ACTION_LOG_YES = "com.vishalgoel.meditationtimer.LOG_YES";
     public static final String ACTION_LOG_NO = "com.vishalgoel.meditationtimer.LOG_NO";
@@ -102,6 +103,9 @@ public final class MeditationTimerService extends Service {
         } else if (ACTION_END.equals(action)) {
             restoreState();
             finish(false);
+        } else if (ACTION_SET_CUES.equals(action)) {
+            restoreState();
+            setCueMode(intent);
         } else if (ACTION_LOG_YES.equals(action) || ACTION_LOG_DEFAULT.equals(action)) {
             decidePendingLog(true);
         } else if (ACTION_LOG_NO.equals(action)) {
@@ -187,6 +191,20 @@ public final class MeditationTimerService extends Service {
         if (state == null) {
             state = stateStore.load();
         }
+    }
+
+    private void setCueMode(Intent intent) {
+        if (state == null || !state.active || intent == null) {
+            return;
+        }
+        state.setCueMode(intent.getBooleanExtra(EXTRA_CHIMES_ENABLED,
+                        state.chimesEnabled),
+                intent.getBooleanExtra(EXTRA_VIBRATION_ENABLED,
+                        state.vibrationEnabled));
+        stateStore.save(state);
+        diagnostics.record("timer.cues chimes=" + state.chimesEnabled
+                + " vibration=" + state.vibrationEnabled);
+        broadcast(EVENT_STATE_CHANGED);
     }
 
     private void resumeTicker() {

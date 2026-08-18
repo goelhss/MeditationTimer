@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0 - 2026-08-18
+
+- Added live Chimes and Vibrate switches to the running timer screen.
+- Cue changes now take effect immediately without pausing or restarting.
+- Added a silent-session option by allowing both live switches to be turned off.
+
 ## 1.2.0 - 2026-08-18
 
 - Added a Ding sound dropdown with Temple Bell, Singing Bowl, Crystal Chime, and Classic Ding.
