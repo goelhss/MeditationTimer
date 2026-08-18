@@ -3,6 +3,7 @@ package com.vishalgoel.meditationtimer;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertThrows;
 
 import org.junit.Test;
 
@@ -40,5 +41,17 @@ public final class TimerStateTest {
                 1_000L, 10_000L, true);
 
         assertEquals(0L, state.elapsedActiveMs(5_000L));
+    }
+
+    @Test
+    public void cueModeIsStoredAndSilentModeIsRejected() {
+        TimerSchedule schedule = new TimerSchedule(60, 5, 10, 10);
+        TimerState vibrationOnly = TimerState.start(schedule, 1_000L, 10_000L,
+                true, false, true);
+
+        assertFalse(vibrationOnly.chimesEnabled);
+        assertTrue(vibrationOnly.vibrationEnabled);
+        assertThrows(IllegalArgumentException.class, () ->
+                TimerState.start(schedule, 1_000L, 10_000L, true, false, false));
     }
 }

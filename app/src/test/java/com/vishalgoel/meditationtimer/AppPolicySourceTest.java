@@ -24,10 +24,13 @@ public final class AppPolicySourceTest {
         assertTrue(manifest.contains("android.permission.FOREGROUND_SERVICE"));
         assertTrue(manifest.contains("android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"));
         assertTrue(manifest.contains("android.permission.SCHEDULE_EXACT_ALARM"));
+        assertTrue(manifest.contains("android.permission.RECEIVE_BOOT_COMPLETED"));
+        assertTrue(manifest.contains("android.permission.VIBRATE"));
         assertTrue(manifest.contains("android.permission.WAKE_LOCK"));
         assertTrue(manifest.contains("android:foregroundServiceType=\"mediaPlayback\""));
         assertTrue(manifest.contains("android:stopWithTask=\"false\""));
         assertTrue(manifest.contains(".LogShareProvider"));
+        assertTrue(manifest.contains(".ReminderReceiver"));
         assertFalse(manifest.contains("android.permission.INTERNET"));
     }
 

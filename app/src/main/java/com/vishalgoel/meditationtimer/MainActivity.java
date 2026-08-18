@@ -7,6 +7,7 @@ import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.TimePickerDialog;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.Context;
@@ -24,6 +25,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.provider.Settings;
+import android.text.format.DateFormat;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -38,24 +40,26 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.visgoe01.carappcommon.MindfulSplashView;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.TimeZone;
 
 @SuppressLint("SetTextI18n")
 public final class MainActivity extends Activity {
-    private static final String TAB_TIMER = "timer";
+    public static final String EXTRA_OPEN_TAB = "open_tab";
+    public static final String TAB_TIMER = "timer";
     private static final String TAB_LOGS = "logs";
+    private static final String TAB_REMINDER = "reminder";
     private static final String TAB_ABOUT = "about";
     private static final String SETTINGS_PREFS = "timer_settings";
     private static final int NOTIFICATION_PERMISSION_REQUEST = 401;
@@ -67,6 +71,7 @@ public final class MainActivity extends Activity {
     private LinearLayout content;
     private Button timerTab;
     private Button logsTab;
+    private Button reminderTab;
     private Button aboutTab;
     private TextView countdownView;
     private TextView activeStatusView;
@@ -112,13 +117,23 @@ public final class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        previewPlayer = new ToneDingPlayer(handler);
+        selectRequestedTab(getIntent());
+        previewPlayer = new ToneDingPlayer(this, handler);
         if (savedInstanceState == null) {
-            setContentView(MindfulSplashView.create(this, "Meditation Timer",
-                    "Version " + BuildConfig.VERSION_NAME,
-                    handler, this::showMainUi));
+            setContentView(LotusSplashView.create(this, handler, this::showMainUi));
         } else {
             showMainUi();
+        }
+    }
+
+    private void selectRequestedTab(Intent intent) {
+        if (intent == null) {
+            return;
+        }
+        String requested = intent.getStringExtra(EXTRA_OPEN_TAB);
+        if (TAB_TIMER.equals(requested) || TAB_LOGS.equals(requested)
+                || TAB_REMINDER.equals(requested) || TAB_ABOUT.equals(requested)) {
+            selectedTab = requested;
         }
     }
 
@@ -141,10 +156,12 @@ public final class MainActivity extends Activity {
         tabs.setOrientation(LinearLayout.HORIZONTAL);
         tabs.setPadding(dp(8), 0, dp(8), dp(8));
         timerTab = tabButton("Timer", TAB_TIMER);
-        logsTab = tabButton("Meditation Logs", TAB_LOGS);
+        logsTab = tabButton("Logs", TAB_LOGS);
+        reminderTab = tabButton("Reminder", TAB_REMINDER);
         aboutTab = tabButton("About", TAB_ABOUT);
         tabs.addView(timerTab, weighted());
         tabs.addView(logsTab, weighted());
+        tabs.addView(reminderTab, weighted());
         tabs.addView(aboutTab, weighted());
         root.addView(tabs, matchWrap());
 
@@ -180,6 +197,8 @@ public final class MainActivity extends Activity {
         updateTabStyles();
         if (TAB_LOGS.equals(selectedTab)) {
             renderLogs();
+        } else if (TAB_REMINDER.equals(selectedTab)) {
+            renderReminder();
         } else if (TAB_ABOUT.equals(selectedTab)) {
             renderAbout();
         } else {
@@ -190,6 +209,7 @@ public final class MainActivity extends Activity {
     private void updateTabStyles() {
         styleTab(timerTab, TAB_TIMER.equals(selectedTab));
         styleTab(logsTab, TAB_LOGS.equals(selectedTab));
+        styleTab(reminderTab, TAB_REMINDER.equals(selectedTab));
         styleTab(aboutTab, TAB_ABOUT.equals(selectedTab));
     }
 
@@ -228,6 +248,20 @@ public final class MainActivity extends Activity {
         form.addView(labeledField("One additional ding every (minutes)", additional));
         form.addView(labeledField("Dings when finished", finish));
 
+        CheckBox chimes = optionCheckBox("Chimes", settings.getBoolean("chimes", true));
+        CheckBox vibrate = optionCheckBox("Vibrate", settings.getBoolean("vibrate", false));
+        android.widget.CompoundButton.OnCheckedChangeListener cueModeListener = (button, checked) -> {
+            if (!chimes.isChecked() && !vibrate.isChecked()) {
+                button.setChecked(true);
+                Toast.makeText(this, "Keep Chimes, Vibrate, or both enabled.",
+                        Toast.LENGTH_SHORT).show();
+            }
+        };
+        chimes.setOnCheckedChangeListener(cueModeListener);
+        vibrate.setOnCheckedChangeListener(cueModeListener);
+        form.addView(chimes, matchWrap());
+        form.addView(vibrate, matchWrap());
+
         CheckBox dim = new CheckBox(this);
         dim.setText("Dim screen while countdown is visible");
         dim.setTextSize(16);
@@ -236,8 +270,9 @@ public final class MainActivity extends Activity {
         dim.setPadding(0, dp(10), 0, dp(10));
         form.addView(dim, matchWrap());
 
-        Button preview = actionButton("Preview ding", false);
-        preview.setOnClickListener(view -> previewPlayer.play(1));
+        Button preview = actionButton("Preview cue", false);
+        preview.setOnClickListener(view -> previewPlayer.play(1,
+                chimes.isChecked(), vibrate.isChecked()));
         form.addView(preview, fullButtonParams());
 
         Button start = actionButton("▶ Start", true);
@@ -249,11 +284,16 @@ public final class MainActivity extends Activity {
                 int additionalValue = parsePositive(additional);
                 int finishValue = parsePositive(finish);
                 new TimerSchedule(durationValue, primaryValue, additionalValue, finishValue);
+                if (!chimes.isChecked() && !vibrate.isChecked()) {
+                    throw new IllegalArgumentException("Enable Chimes, Vibrate, or both.");
+                }
                 settings.edit()
                         .putInt("duration", durationValue)
                         .putInt("primary", primaryValue)
                         .putInt("additional", additionalValue)
                         .putInt("finish", finishValue)
+                        .putBoolean("chimes", chimes.isChecked())
+                        .putBoolean("vibrate", vibrate.isChecked())
                         .putBoolean("dim", dim.isChecked())
                         .apply();
                 requestNotificationPermissionIfNeeded();
@@ -263,6 +303,10 @@ public final class MainActivity extends Activity {
                         .putExtra(MeditationTimerService.EXTRA_PRIMARY_MINUTES, primaryValue)
                         .putExtra(MeditationTimerService.EXTRA_ADDITIONAL_MINUTES, additionalValue)
                         .putExtra(MeditationTimerService.EXTRA_FINISH_DINGS, finishValue)
+                        .putExtra(MeditationTimerService.EXTRA_CHIMES_ENABLED,
+                                chimes.isChecked())
+                        .putExtra(MeditationTimerService.EXTRA_VIBRATION_ENABLED,
+                                vibrate.isChecked())
                         .putExtra(MeditationTimerService.EXTRA_DIM_SCREEN, dim.isChecked());
                 startForegroundService(service);
                 promptExactAlarmAccessIfNeeded();
@@ -312,6 +356,7 @@ public final class MainActivity extends Activity {
         TextView detail = bodyText("Primary ding every " + state.primaryMs / TimerSchedule.MINUTE_MS
                 + " min · additional ding every " + state.additionalMs / TimerSchedule.MINUTE_MS
                 + " min\nCompletion: " + state.finishDings + " dings"
+                + " · " + cueModeLabel(state.chimesEnabled, state.vibrationEnabled)
                 + (state.dimScreen ? " · screen dimming on" : ""));
         detail.setGravity(Gravity.CENTER);
         page.addView(detail, matchWrap());
@@ -430,6 +475,137 @@ public final class MainActivity extends Activity {
         content.addView(scroll(page), fill());
     }
 
+    private void renderReminder() {
+        restoreScreenMode();
+        ReminderSchedule saved = new ReminderStore(this).load();
+        LinearLayout page = pageColumn();
+        page.addView(sectionTitle("Meditation Reminder"), matchWrap());
+        page.addView(bodyText("Choose when Android should gently remind you to meditate."),
+                matchWrap());
+
+        CheckBox enabled = optionCheckBox("Remind me to meditate", saved.enabled());
+        LinearLayout.LayoutParams enabledParams = matchWrap();
+        enabledParams.topMargin = dp(12);
+        page.addView(enabled, enabledParams);
+
+        ReminderSchedule.Frequency[] frequencies = ReminderSchedule.Frequency.values();
+        List<String> frequencyLabels = new ArrayList<>();
+        for (ReminderSchedule.Frequency frequency : frequencies) {
+            frequencyLabels.add(frequency.label());
+        }
+        ArrayAdapter<String> frequencyAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, frequencyLabels);
+        frequencyAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        Spinner frequency = new Spinner(this);
+        frequency.setAdapter(frequencyAdapter);
+        frequency.setSelection(saved.frequency().ordinal(), false);
+        page.addView(labeledControl("How often", frequency));
+
+        final int[] selectedHour = {saved.hour()};
+        final int[] selectedMinute = {saved.minute()};
+        Button time = actionButton(formatClockTime(saved.hour(), saved.minute()), false);
+        time.setOnClickListener(view -> new TimePickerDialog(this, (picker, hour, minute) -> {
+            selectedHour[0] = hour;
+            selectedMinute[0] = minute;
+            time.setText(formatClockTime(hour, minute));
+        }, selectedHour[0], selectedMinute[0], DateFormat.is24HourFormat(this)).show());
+        page.addView(labeledControl("When", time));
+
+        LinearLayout selectedDays = new LinearLayout(this);
+        selectedDays.setOrientation(LinearLayout.VERTICAL);
+        TextView daysLabel = bodyText("Selected days");
+        daysLabel.setTextColor(accentTextColor());
+        selectedDays.addView(daysLabel, matchWrap());
+        int[] calendarDays = {Calendar.MONDAY, Calendar.TUESDAY, Calendar.WEDNESDAY,
+                Calendar.THURSDAY, Calendar.FRIDAY, Calendar.SATURDAY, Calendar.SUNDAY};
+        String[] dayLabels = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+        CheckBox[] dayChecks = new CheckBox[calendarDays.length];
+        LinearLayout firstDays = new LinearLayout(this);
+        firstDays.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout secondDays = new LinearLayout(this);
+        secondDays.setOrientation(LinearLayout.HORIZONTAL);
+        for (int index = 0; index < calendarDays.length; index += 1) {
+            CheckBox day = optionCheckBox(dayLabels[index],
+                    (saved.customDaysMask() & ReminderSchedule.dayBit(calendarDays[index])) != 0);
+            day.setTextSize(14);
+            dayChecks[index] = day;
+            (index < 4 ? firstDays : secondDays).addView(day, weighted());
+        }
+        selectedDays.addView(firstDays, matchWrap());
+        selectedDays.addView(secondDays, matchWrap());
+        LinearLayout.LayoutParams daysParams = matchWrap();
+        daysParams.topMargin = dp(10);
+        page.addView(selectedDays, daysParams);
+
+        Runnable updateControls = () -> {
+            boolean active = enabled.isChecked();
+            frequency.setEnabled(active);
+            time.setEnabled(active);
+            boolean custom = active && frequency.getSelectedItemPosition()
+                    == ReminderSchedule.Frequency.CUSTOM.ordinal();
+            selectedDays.setVisibility(custom ? View.VISIBLE : View.GONE);
+            for (CheckBox day : dayChecks) {
+                day.setEnabled(custom);
+            }
+        };
+        enabled.setOnCheckedChangeListener((button, checked) -> updateControls.run());
+        frequency.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view,
+                                       int position, long id) {
+                updateControls.run();
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+        });
+        updateControls.run();
+
+        TextView next = bodyText(saved.enabled()
+                ? "Next reminder: " + formatReminderDate(saved.nextTriggerAfter(
+                        System.currentTimeMillis(), TimeZone.getDefault()))
+                : "Reminders are currently off.");
+        next.setPadding(0, dp(18), 0, dp(10));
+        page.addView(next, matchWrap());
+
+        Button save = actionButton("Save reminder", true);
+        save.setOnClickListener(view -> {
+            int customMask = 0;
+            for (int index = 0; index < calendarDays.length; index += 1) {
+                if (dayChecks[index].isChecked()) {
+                    customMask |= ReminderSchedule.dayBit(calendarDays[index]);
+                }
+            }
+            try {
+                ReminderSchedule schedule = new ReminderSchedule(enabled.isChecked(),
+                        frequencies[frequency.getSelectedItemPosition()], selectedHour[0],
+                        selectedMinute[0], customMask);
+                new ReminderStore(this).save(schedule);
+                new ReminderScheduler(this).apply(schedule);
+                if (schedule.enabled()) {
+                    requestNotificationPermissionIfNeeded();
+                    promptExactAlarmAccessIfNeeded();
+                    Toast.makeText(this, "Reminder saved for "
+                                    + formatReminderDate(schedule.nextTriggerAfter(
+                                            System.currentTimeMillis(), TimeZone.getDefault())),
+                            Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(this, "Meditation reminder turned off.",
+                            Toast.LENGTH_SHORT).show();
+                }
+                renderSelectedTab();
+            } catch (IllegalArgumentException error) {
+                new AlertDialog.Builder(this)
+                        .setTitle("Check reminder")
+                        .setMessage(error.getMessage())
+                        .setPositiveButton("OK", null)
+                        .show();
+            }
+        });
+        page.addView(save, fullButtonParams());
+        content.addView(scroll(page), fill());
+    }
+
     private void shareLogs(List<MeditationLog> allLogs) {
         List<MeditationLog> selected = new ArrayList<>();
         if (selectedLogIds.isEmpty()) {
@@ -499,13 +675,18 @@ public final class MainActivity extends Activity {
         updateParams.topMargin = dp(14);
         page.addView(update, updateParams);
 
-        page.addView(subsectionTitle("Background timer status"), matchWrap());
+        page.addView(subsectionTitle("Background status"), matchWrap());
         TimerState state = new TimerStateStore(this).load();
+        ReminderSchedule reminder = new ReminderStore(this).load();
         page.addView(bodyText("Timer: " + (state.active
                         ? (state.paused ? "paused" : "running") : "inactive")
+                + "\nReminder: " + (reminder.enabled()
+                        ? reminder.frequency().label() + " at "
+                                + formatClockTime(reminder.hour(), reminder.minute())
+                        : "off")
                 + "\nNotifications: " + (notificationsAllowed() ? "allowed" : "not allowed")
                 + "\nExact alarms: " + (exactAlarmsAllowed() ? "allowed" : "not allowed")
-                + "\nThe app uses an ongoing notification and never forces itself over the lock screen."),
+                + "\nThe timer uses an ongoing notification and never forces itself over the lock screen."),
                 matchWrap());
 
         page.addView(subsectionTitle("Diagnostics"), matchWrap());
@@ -531,7 +712,9 @@ public final class MainActivity extends Activity {
         page.addView(clearDiagnostics, clearParams);
 
         page.addView(subsectionTitle("Version history"), matchWrap());
-        page.addView(bodyText("1.0.0 · August 18, 2026\n"
+        page.addView(bodyText("1.1.0 · August 18, 2026\n"
+                + "Large lotus launch screen, chime/vibration modes, and configurable meditation reminders.\n\n"
+                + "1.0.0 · August 18, 2026\n"
                 + "Timer, overlapping interval dings, screen-locked operation, completion prompt, logs, sharing, and diagnostics."),
                 matchWrap());
 
@@ -550,11 +733,11 @@ public final class MainActivity extends Activity {
         }
         preferences.edit().putInt("last_whats_new", BuildConfig.VERSION_CODE).apply();
         new AlertDialog.Builder(this)
-                .setTitle("What’s new in 1.0.0")
-                .setMessage("• Configurable interval and completion dings\n"
-                        + "• Timer continues with the screen locked\n"
-                        + "• Pause, Resume, Restart, and End\n"
-                        + "• Meditation logs with text-file sharing")
+                .setTitle("What’s new in 1.1.0")
+                .setMessage("• Large lotus launch screen with no countdown\n"
+                        + "• Chimes, vibration, or both for every cue\n"
+                        + "• Meditation Reminder tab with daily, weekday, weekend, or selected-day schedules\n"
+                        + "• Reminder notifications open the Timer tab")
                 .setPositiveButton("Continue", null)
                 .show();
     }
@@ -636,8 +819,8 @@ public final class MainActivity extends Activity {
             return;
         }
         new AlertDialog.Builder(this)
-                .setTitle("Allow reliable timer recovery")
-                .setMessage("Allow Alarms & reminders so Android can recover a user-started timer if its process is recreated while the screen is locked.")
+                .setTitle("Allow reliable timing")
+                .setMessage("Allow Alarms & reminders so Android can recover a running meditation timer and deliver reminders at the time you choose.")
                 .setNegativeButton("Not now", null)
                 .setPositiveButton("Allow", (dialog, which) -> {
                     try {
@@ -736,6 +919,47 @@ public final class MainActivity extends Activity {
         row.addView(field, new LinearLayout.LayoutParams(dp(92),
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         return row;
+    }
+
+    private LinearLayout labeledControl(String label, View control) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(8), 0, dp(8));
+        row.addView(bodyText(label), new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(control, new LinearLayout.LayoutParams(dp(170),
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        return row;
+    }
+
+    private CheckBox optionCheckBox(String text, boolean checked) {
+        CheckBox option = new CheckBox(this);
+        option.setText(text);
+        option.setTextSize(16);
+        option.setTextColor(primaryTextColor());
+        option.setChecked(checked);
+        option.setPadding(0, dp(8), 0, dp(8));
+        return option;
+    }
+
+    private String cueModeLabel(boolean chimesEnabled, boolean vibrationEnabled) {
+        if (chimesEnabled && vibrationEnabled) {
+            return "chimes + vibration";
+        }
+        return chimesEnabled ? "chimes" : "vibration";
+    }
+
+    private String formatClockTime(int hour, int minute) {
+        Calendar time = Calendar.getInstance();
+        time.set(Calendar.HOUR_OF_DAY, hour);
+        time.set(Calendar.MINUTE, minute);
+        return DateFormat.getTimeFormat(this).format(time.getTime());
+    }
+
+    private String formatReminderDate(long wallTimeMs) {
+        return new SimpleDateFormat("EEE, MMM d 'at' h:mm a", Locale.US)
+                .format(new Date(wallTimeMs));
     }
 
     private EditText numberField(int value) {
@@ -911,6 +1135,16 @@ public final class MainActivity extends Activity {
 
     private int accentTextColor() {
         return Color.rgb(190, 218, 255);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        selectRequestedTab(intent);
+        if (mainUiShown) {
+            renderSelectedTab();
+        }
     }
 
     @Override

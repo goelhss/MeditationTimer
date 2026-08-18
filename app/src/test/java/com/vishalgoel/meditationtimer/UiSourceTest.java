@@ -8,12 +8,13 @@ import org.junit.Test;
 
 public final class UiSourceTest {
     @Test
-    public void keepsRequestedThreeTabsAndTimerDefaults() throws IOException {
+    public void keepsRequestedFourTabsAndTimerDefaults() throws IOException {
         String source = TestSources.read(
                 "app/src/main/java/com/vishalgoel/meditationtimer/MainActivity.java");
 
         assertTrue(source.contains("tabButton(\"Timer\""));
-        assertTrue(source.contains("tabButton(\"Meditation Logs\""));
+        assertTrue(source.contains("tabButton(\"Logs\""));
+        assertTrue(source.contains("tabButton(\"Reminder\""));
         assertTrue(source.contains("tabButton(\"About\""));
         assertFalse(source.contains("TAB_SETTINGS"));
         assertTrue(source.contains("getInt(\"duration\", 60)"));
@@ -21,6 +22,8 @@ public final class UiSourceTest {
         assertTrue(source.contains("getInt(\"additional\", 10)"));
         assertTrue(source.contains("getInt(\"finish\", 10)"));
         assertTrue(source.contains("getBoolean(\"dim\", true)"));
+        assertTrue(source.contains("getBoolean(\"chimes\", true)"));
+        assertTrue(source.contains("getBoolean(\"vibrate\", false)"));
     }
 
     @Test
@@ -30,9 +33,14 @@ public final class UiSourceTest {
 
         assertTrue(source.contains("Background color"));
         assertTrue(source.contains("Check for Updates"));
-        assertTrue(source.contains("What’s new in 1.0.0"));
+        assertTrue(source.contains("What’s new in 1.1.0"));
         assertTrue(source.contains("Share Debug logs"));
         assertTrue(source.contains("View MIT License"));
-        assertTrue(source.contains("MindfulSplashView.create"));
+        assertTrue(source.contains("LotusSplashView.create"));
+        assertFalse(source.contains("MindfulSplashView.create"));
+        String splash = TestSources.read(
+                "app/src/main/java/com/vishalgoel/meditationtimer/LotusSplashView.java");
+        assertTrue(splash.contains("R.drawable.lotus_splash"));
+        assertFalse(splash.toLowerCase().contains("countdown"));
     }
 }

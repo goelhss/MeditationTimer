@@ -2,6 +2,7 @@
 
 ## In progress
 
+- 2026-08-18: Build, test, and deliver Meditation Timer 1.1.0 with the lotus launch screen, cue modes, and Reminder tab.
 - 2026-08-18: Run the first physical-phone smoke test from the Google Play internal-testing install.
 
 ## Done

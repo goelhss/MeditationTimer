@@ -24,6 +24,8 @@ public final class TimerStateStore {
                 .putLong("segment_realtime_ms", state.segmentStartedRealtimeMs)
                 .putLong("processed_through_ms", state.processedThroughActiveMs)
                 .putBoolean("dim_screen", state.dimScreen)
+                .putBoolean("chimes_enabled", state.chimesEnabled)
+                .putBoolean("vibration_enabled", state.vibrationEnabled)
                 .apply();
     }
 
@@ -40,6 +42,8 @@ public final class TimerStateStore {
         state.segmentStartedRealtimeMs = prefs.getLong("segment_realtime_ms", 0L);
         state.processedThroughActiveMs = prefs.getLong("processed_through_ms", 0L);
         state.dimScreen = prefs.getBoolean("dim_screen", true);
+        state.chimesEnabled = prefs.getBoolean("chimes_enabled", true);
+        state.vibrationEnabled = prefs.getBoolean("vibration_enabled", false);
         return state;
     }
 

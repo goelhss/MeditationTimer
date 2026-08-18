@@ -12,9 +12,20 @@ public final class TimerState {
     public long segmentStartedRealtimeMs;
     public long processedThroughActiveMs;
     public boolean dimScreen;
+    public boolean chimesEnabled;
+    public boolean vibrationEnabled;
 
     public static TimerState start(TimerSchedule schedule, long wallMs, long realtimeMs,
                                    boolean dimScreen) {
+        return start(schedule, wallMs, realtimeMs, dimScreen, true, false);
+    }
+
+    public static TimerState start(TimerSchedule schedule, long wallMs, long realtimeMs,
+                                   boolean dimScreen, boolean chimesEnabled,
+                                   boolean vibrationEnabled) {
+        if (!chimesEnabled && !vibrationEnabled) {
+            throw new IllegalArgumentException("Enable Chimes, Vibrate, or both.");
+        }
         TimerState state = new TimerState();
         state.active = true;
         state.paused = false;
@@ -27,6 +38,8 @@ public final class TimerState {
         state.segmentStartedRealtimeMs = realtimeMs;
         state.processedThroughActiveMs = 0L;
         state.dimScreen = dimScreen;
+        state.chimesEnabled = chimesEnabled;
+        state.vibrationEnabled = vibrationEnabled;
         return state;
     }
 

@@ -23,6 +23,7 @@ run_always() {
     "$GRADLE_BIN" :app:testDebugUnitTest \
         --tests com.vishalgoel.meditationtimer.TimerScheduleTest \
         --tests com.vishalgoel.meditationtimer.TimerStateTest \
+        --tests com.vishalgoel.meditationtimer.ReminderScheduleTest \
         --tests com.vishalgoel.meditationtimer.MeditationLogCodecTest \
         --tests com.vishalgoel.meditationtimer.AppPolicySourceTest
 }
@@ -43,7 +44,9 @@ run_targeted() {
         ui)
             "$GRADLE_BIN" :app:testDebugUnitTest \
                 --tests com.vishalgoel.meditationtimer.AppColorThemeTest \
-                --tests com.vishalgoel.meditationtimer.UiSourceTest
+                --tests com.vishalgoel.meditationtimer.UiSourceTest \
+                --tests com.vishalgoel.meditationtimer.ReminderSourceTest \
+                --tests com.vishalgoel.meditationtimer.CueModeSourceTest
             ;;
         all)
             "$GRADLE_BIN" testDebugUnitTest
