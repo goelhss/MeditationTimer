@@ -61,6 +61,8 @@ public final class TimerStateTest {
         bowl.setCueMode(false, false);
         assertFalse(bowl.chimesEnabled);
         assertFalse(bowl.vibrationEnabled);
+        bowl.setDimScreen(false);
+        assertFalse(bowl.dimScreen);
         assertThrows(IllegalArgumentException.class, () ->
                 TimerState.start(schedule, 1_000L, 10_000L, true, false, false));
     }

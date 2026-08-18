@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.0 - 2026-08-18
+
+- Added a live Dim switch to the running timer screen.
+- Screen brightness changes now take effect immediately and persist with the active background timer state.
+
 ## 1.3.0 - 2026-08-18
 
 - Added live Chimes and Vibrate switches to the running timer screen.

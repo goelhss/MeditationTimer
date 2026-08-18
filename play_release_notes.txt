@@ -1,3 +1,3 @@
-Turn Chimes and Vibrate on or off while meditation is running.
+Turn Chimes, Vibrate, and Dim on or off while meditation is running.
 Changes take effect immediately without pausing or restarting.
-Turn both off whenever you want the rest of a session to be silent.
+Turn both cue switches off whenever you want the rest of a session silent.

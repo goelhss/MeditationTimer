@@ -16,6 +16,7 @@
 - Completion defaults to 10 dings and replaces any periodic ding at the completion instant.
 - Chimes default on and vibration defaults off. Timer setup starts with at least one enabled, allowing chimes only, vibration only, or both.
 - While a meditation is running, show independent live Chimes and Vibrate switches. Apply changes immediately without pausing/restarting, persist them in the active background-service state, and allow both off for a silent remainder of the current session.
+- While a meditation is running, show a live Dim switch. Apply the brightness change immediately without pausing/restarting and persist it in the active background-service state so activity recreation does not revert the choice.
 - The Timer tab offers Temple Bell, Singing Bowl, Crystal Chime, and the original Classic Ding. Temple Bell is the default; the three new synthesized sounds use full alarm-stream volume, harmonic decay, and audible echo/reverb tails.
 - Preview uses the same selected sound and chime/vibration mode as the running timer.
 - Timer display offers a persistent choice between the existing large digital countdown and a large analog countdown dial. Digital is the default. The analog dial shows 60 tick marks, remaining progress, a moving hand, and remaining whole minutes.

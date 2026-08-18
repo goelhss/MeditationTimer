@@ -402,15 +402,18 @@ public final class MainActivity extends Activity {
         cueControls.setOrientation(LinearLayout.HORIZONTAL);
         CheckBox liveChimes = optionCheckBox("Chimes", state.chimesEnabled);
         CheckBox liveVibrate = optionCheckBox("Vibrate", state.vibrationEnabled);
+        CheckBox liveDim = optionCheckBox("Dim", state.dimScreen);
         android.widget.CompoundButton.OnCheckedChangeListener liveCueListener =
                 (button, checked) -> sendCueMode(liveChimes.isChecked(),
                         liveVibrate.isChecked());
         liveChimes.setOnCheckedChangeListener(liveCueListener);
         liveVibrate.setOnCheckedChangeListener(liveCueListener);
+        liveDim.setOnCheckedChangeListener((button, checked) -> sendDimMode(checked));
         cueControls.addView(liveChimes, weighted());
         cueControls.addView(liveVibrate, weighted());
+        cueControls.addView(liveDim, weighted());
         page.addView(cueControls, matchWrap());
-        TextView cueHint = bodyText("Changes take effect immediately. Turn both off for silence.");
+        TextView cueHint = bodyText("Changes take effect immediately. Turn both cue switches off for silence.");
         cueHint.setGravity(Gravity.CENTER);
         page.addView(cueHint, matchWrap());
 
@@ -765,7 +768,9 @@ public final class MainActivity extends Activity {
         page.addView(clearDiagnostics, clearParams);
 
         page.addView(subsectionTitle("Version history"), matchWrap());
-        page.addView(bodyText("1.3.0 · August 18, 2026\n"
+        page.addView(bodyText("1.4.0 · August 18, 2026\n"
+                + "Live Dim control joins the running-session Chimes and Vibrate controls.\n\n"
+                + "1.3.0 · August 18, 2026\n"
                 + "Live Chimes and Vibrate controls, including silent mode during a running session.\n\n"
                 + "1.2.0 · August 18, 2026\n"
                 + "Resonant sound choices plus large digital and analog timer displays.\n\n"
@@ -790,10 +795,10 @@ public final class MainActivity extends Activity {
         }
         preferences.edit().putInt("last_whats_new", BuildConfig.VERSION_CODE).apply();
         new AlertDialog.Builder(this)
-                .setTitle("What’s new in 1.3.0")
-                .setMessage("• Live Chimes and Vibrate switches on the running timer\n"
+                .setTitle("What’s new in 1.4.0")
+                .setMessage("• Live Chimes, Vibrate, and Dim switches on the running timer\n"
                         + "• Changes take effect without pausing or restarting\n"
-                        + "• Turn both switches off for a silent session")
+                        + "• Turn both cue switches off for a silent session")
                 .setPositiveButton("Continue", null)
                 .show();
     }
@@ -868,6 +873,14 @@ public final class MainActivity extends Activity {
                 .setAction(MeditationTimerService.ACTION_SET_CUES)
                 .putExtra(MeditationTimerService.EXTRA_CHIMES_ENABLED, chimesEnabled)
                 .putExtra(MeditationTimerService.EXTRA_VIBRATION_ENABLED, vibrationEnabled);
+        startForegroundService(intent);
+        handler.postDelayed(this::refreshForStateChange, 120L);
+    }
+
+    private void sendDimMode(boolean dimScreen) {
+        Intent intent = new Intent(this, MeditationTimerService.class)
+                .setAction(MeditationTimerService.ACTION_SET_DIM)
+                .putExtra(MeditationTimerService.EXTRA_DIM_SCREEN, dimScreen);
         startForegroundService(intent);
         handler.postDelayed(this::refreshForStateChange, 120L);
     }

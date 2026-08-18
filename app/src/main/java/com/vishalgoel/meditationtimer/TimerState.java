@@ -79,6 +79,10 @@ public final class TimerState {
         this.vibrationEnabled = vibrationEnabled;
     }
 
+    public void setDimScreen(boolean dimScreen) {
+        this.dimScreen = dimScreen;
+    }
+
     public void pause(long realtimeMs) {
         if (!active || paused) {
             return;
