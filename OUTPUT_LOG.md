@@ -2,6 +2,21 @@
 
 Newest entries go first. Build, test, GitHub, artifact checksum/size, Play upload, and Telegram results are recorded here without secrets.
 
+## 2026-08-18 · 1.4.0 (versionCode 4) · live meditation controls release
+
+- Clean release source commit: `95678e4` (`Add live screen dim control`).
+- Always-required and full JVM/source-policy suites: 35 app tests passed, 0 failed; shared-module tests also passed.
+- Android lint: passed with 0 errors and 0 warnings.
+- Signed AAB: `release/MeditationTimer-1.4.0-v4-release.aab`.
+- Size: 57,516 bytes.
+- SHA-256: `08162a4d18a1183faf26bbea1e677618128c59851fb38dd8ea1ce00799d43404`.
+- Signature verification: passed during the clean release build.
+- Physical-phone smoke test: pending; live cue, vibration, dimming, and lock-screen behavior should be confirmed on the tester's phone.
+- GitHub: pushed `main` through `95678e4` and annotated tag `meditation-timer-1.4.0-v4` to `https://github.com/goelhss/MeditationTimer`.
+- Google Play: version `4 (1.4.0)` published to internal testing and verified as **Available to internal testers** on 2026-08-18.
+- Play validation: 11,243 phones remain supported; the only warning was the expected missing deobfuscation file while code obfuscation is disabled.
+- Telegram `google-console-upload` success notification: sent.
+
 ## 2026-08-18 · 1.2.0 (versionCode 3) · resonant-sound and timer-display release
 
 - Clean release source commit: `42a4711` (`Add resonant chimes and analog timer`).
