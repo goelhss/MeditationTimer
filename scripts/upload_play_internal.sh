@@ -84,6 +84,13 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 OUTPUT_DIR="$PROJECT_DIR/release"
 cd "$PROJECT_DIR"
 
+CURRENT_USER="$(id -un)"
+TOOLCHAIN_ROOT="/Users/$CURRENT_USER/.local/share/carmedia-toolchain"
+export JAVA_HOME="${JAVA_HOME:-$TOOLCHAIN_ROOT/jdk-17}"
+export ANDROID_HOME="${ANDROID_HOME:-$TOOLCHAIN_ROOT/android-sdk}"
+export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:/usr/bin:/bin:/usr/sbin:/sbin"
+
 SERVICE_ACCOUNT_JSON="${MEDITATION_TIMER_PLAY_SERVICE_ACCOUNT_JSON:-$PROJECT_DIR/../secrets/google-play-service-account.json}"
 NOTIFIER="$PROJECT_DIR/../scripts/notify_vishal"
 EDIT_ID=""

@@ -46,6 +46,9 @@ public final class AppPolicySourceTest {
         assertTrue(bundle.contains("signing/keystore.properties"));
         assertTrue(bundle.contains("jarsigner -verify"));
         assertTrue(upload.contains("jarsigner -verify"));
+        assertTrue(upload.contains("TOOLCHAIN_ROOT"));
+        assertTrue(upload.contains("export JAVA_HOME"));
+        assertTrue(upload.contains("export PATH"));
         assertTrue(upload.contains("com.vishalgoel.meditationtimer"));
         assertTrue(upload.contains("--app MeditationTimer"));
     }
