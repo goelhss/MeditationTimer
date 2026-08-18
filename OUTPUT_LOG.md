@@ -2,6 +2,21 @@
 
 Newest entries go first. Build, test, GitHub, artifact checksum/size, Play upload, and Telegram results are recorded here without secrets.
 
+## 2026-08-18 · 1.2.0 (versionCode 3) · resonant-sound and timer-display release
+
+- Clean release source commit: `42a4711` (`Add resonant chimes and analog timer`).
+- Always-required and full JVM/source-policy suites: 35 app tests passed, 0 failed; shared-module tests also passed.
+- Android lint: passed with 0 errors and 0 warnings.
+- Signed AAB: `release/MeditationTimer-1.2.0-v3-release.aab`.
+- Size: 56,589 bytes.
+- SHA-256: `c5f59c7ded24eb7236eb897cefee0e9de4717d10a6879648bb478d48e290c55e`.
+- Signature verification: passed with the bundled JDK 17 `jarsigner`.
+- Device/audio runtime smoke test: pending; sound character and physical-phone loudness still need subjective confirmation on the tester's phone.
+- GitHub: pushed `main` through `42a4711` and annotated tag `meditation-timer-1.2.0-v3` to `https://github.com/goelhss/MeditationTimer`.
+- Google Play: version `3 (1.2.0)` published to internal testing and verified as **Available to internal testers** on 2026-08-18.
+- Play validation: 11,243 phones remain supported; the only warning was the expected missing deobfuscation file while code obfuscation is disabled.
+- Telegram `google-console-upload` success notification: sent.
+
 ## 2026-08-18 · 1.1.0 (versionCode 2) · internal-testing release
 
 - Clean release source commit: `ecde7ba6122736e55a3fbb635630fff1f0161547` (`Add reminders and configurable meditation cues`).

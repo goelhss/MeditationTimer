@@ -6,6 +6,9 @@
 
 ## Done
 
+- 2026-08-18: Added Temple Bell, Singing Bowl, Crystal Chime, and Classic Ding selection with louder alarm-volume playback and reverberating tails.
+- 2026-08-18: Added persistent large digital and analog countdown display choices.
+- 2026-08-18: Tested, signed, tagged, pushed, and published Meditation Timer `3 (1.2.0)` to internal testing; Play reports it available and Telegram notification was sent.
 - 2026-08-18: Built, tested, signed, tagged, pushed, and published Meditation Timer `2 (1.1.0)` with the lotus launch screen, chime/vibration modes, and Reminder tab.
 - 2026-08-18: Verified version `2 (1.1.0)` as available to internal testers and sent the Telegram success notification.
 - 2026-08-18: Created and pushed the public `goelhss/MeditationTimer` repository and release tag `meditation-timer-1.0.0-v1`.
