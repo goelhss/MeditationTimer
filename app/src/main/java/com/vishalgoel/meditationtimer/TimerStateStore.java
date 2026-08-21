@@ -28,6 +28,9 @@ public final class TimerStateStore {
                 .putBoolean("vibration_enabled", state.vibrationEnabled)
                 .putString("chime_sound_id", ChimeSound.fromId(state.chimeSoundId).id())
                 .putString("display_mode_id", TimerDisplayMode.fromId(state.displayModeId).id())
+                .putBoolean("preparing", state.preparing)
+                .putLong("prep_duration_ms", state.prepDurationMs)
+                .putLong("prep_before_ms", state.prepBeforeSegmentMs)
                 .apply();
     }
 
@@ -50,6 +53,9 @@ public final class TimerStateStore {
                 ChimeSound.DEFAULT.id())).id();
         state.displayModeId = TimerDisplayMode.fromId(prefs.getString("display_mode_id",
                 TimerDisplayMode.DEFAULT.id())).id();
+        state.preparing = prefs.getBoolean("preparing", false);
+        state.prepDurationMs = prefs.getLong("prep_duration_ms", 0L);
+        state.prepBeforeSegmentMs = prefs.getLong("prep_before_ms", 0L);
         return state;
     }
 

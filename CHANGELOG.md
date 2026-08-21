@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0 - 2026-08-21
+
+- Added a spacious Meditation Bowl sound candidate.
+- Added configurable preparation time, defaulting to 15 seconds and excluded from meditation logs.
+- Made elapsed and remaining time clearly visible and changed the analog timer label to show seconds.
+- Added a dismissible “Well done.” completion message with a purple lotus.
+- Added a Resolution tab for saving, reviewing, and deleting dated meditation commitments.
+
 ## 1.4.0 - 2026-08-18
 
 - Added a live Dim switch to the running timer screen.

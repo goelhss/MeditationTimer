@@ -16,6 +16,9 @@ public final class TimerState {
     public boolean vibrationEnabled;
     public String chimeSoundId;
     public String displayModeId;
+    public boolean preparing;
+    public long prepDurationMs;
+    public long prepBeforeSegmentMs;
 
     public static TimerState start(TimerSchedule schedule, long wallMs, long realtimeMs,
                                    boolean dimScreen) {
@@ -40,6 +43,14 @@ public final class TimerState {
                                    boolean dimScreen, boolean chimesEnabled,
                                    boolean vibrationEnabled, String chimeSoundId,
                                    String displayModeId) {
+        return start(schedule, wallMs, realtimeMs, dimScreen, chimesEnabled,
+                vibrationEnabled, chimeSoundId, displayModeId, 0L);
+    }
+
+    public static TimerState start(TimerSchedule schedule, long wallMs, long realtimeMs,
+                                   boolean dimScreen, boolean chimesEnabled,
+                                   boolean vibrationEnabled, String chimeSoundId,
+                                   String displayModeId, long prepDurationMs) {
         if (!chimesEnabled && !vibrationEnabled) {
             throw new IllegalArgumentException("Enable Chimes, Vibrate, or both.");
         }
@@ -50,7 +61,10 @@ public final class TimerState {
         state.primaryMs = schedule.primaryMs();
         state.additionalMs = schedule.additionalMs();
         state.finishDings = schedule.finishDings();
-        state.startWallMs = wallMs;
+        state.prepDurationMs = Math.max(0L, prepDurationMs);
+        state.preparing = state.prepDurationMs > 0L;
+        state.prepBeforeSegmentMs = 0L;
+        state.startWallMs = wallMs + state.prepDurationMs;
         state.activeBeforeSegmentMs = 0L;
         state.segmentStartedRealtimeMs = realtimeMs;
         state.processedThroughActiveMs = 0L;
@@ -63,6 +77,9 @@ public final class TimerState {
     }
 
     public long elapsedActiveMs(long realtimeMs) {
+        if (preparing) {
+            return 0L;
+        }
         long elapsed = activeBeforeSegmentMs;
         if (active && !paused) {
             elapsed += Math.max(0L, realtimeMs - segmentStartedRealtimeMs);
@@ -72,6 +89,40 @@ public final class TimerState {
 
     public long remainingMs(long realtimeMs) {
         return Math.max(0L, durationMs - elapsedActiveMs(realtimeMs));
+    }
+
+    public long elapsedPreparationMs(long realtimeMs) {
+        if (!preparing) {
+            return prepDurationMs;
+        }
+        long elapsed = prepBeforeSegmentMs;
+        if (active && !paused) {
+            elapsed += Math.max(0L, realtimeMs - segmentStartedRealtimeMs);
+        }
+        return Math.min(prepDurationMs, Math.max(0L, elapsed));
+    }
+
+    public long preparationRemainingMs(long realtimeMs) {
+        return preparing ? Math.max(0L, prepDurationMs - elapsedPreparationMs(realtimeMs)) : 0L;
+    }
+
+    public long totalRemainingMs(long realtimeMs) {
+        return preparationRemainingMs(realtimeMs) + remainingMs(realtimeMs);
+    }
+
+    public void finishPreparation(long wallMs, long realtimeMs) {
+        if (!active || paused || !preparing) {
+            return;
+        }
+        long preparationEndRealtimeMs = segmentStartedRealtimeMs
+                + Math.max(0L, prepDurationMs - prepBeforeSegmentMs);
+        long overshootMs = Math.max(0L, realtimeMs - preparationEndRealtimeMs);
+        preparing = false;
+        prepBeforeSegmentMs = prepDurationMs;
+        startWallMs = wallMs - overshootMs;
+        activeBeforeSegmentMs = 0L;
+        segmentStartedRealtimeMs = realtimeMs - overshootMs;
+        processedThroughActiveMs = 0L;
     }
 
     public void setCueMode(boolean chimesEnabled, boolean vibrationEnabled) {
@@ -87,7 +138,11 @@ public final class TimerState {
         if (!active || paused) {
             return;
         }
-        activeBeforeSegmentMs = elapsedActiveMs(realtimeMs);
+        if (preparing) {
+            prepBeforeSegmentMs = elapsedPreparationMs(realtimeMs);
+        } else {
+            activeBeforeSegmentMs = elapsedActiveMs(realtimeMs);
+        }
         paused = true;
     }
 
@@ -102,7 +157,9 @@ public final class TimerState {
     public void restart(long wallMs, long realtimeMs) {
         active = true;
         paused = false;
-        startWallMs = wallMs;
+        preparing = prepDurationMs > 0L;
+        prepBeforeSegmentMs = 0L;
+        startWallMs = wallMs + prepDurationMs;
         activeBeforeSegmentMs = 0L;
         segmentStartedRealtimeMs = realtimeMs;
         processedThroughActiveMs = 0L;

@@ -10,6 +10,8 @@ public final class BackgroundContinuitySourceTest {
     public void servicePersistsElapsedRealtimeStateAndRecovers() throws IOException {
         String source = TestSources.read(
                 "app/src/main/java/com/vishalgoel/meditationtimer/MeditationTimerService.java");
+        String store = TestSources.read(
+                "app/src/main/java/com/vishalgoel/meditationtimer/TimerStateStore.java");
 
         assertTrue(source.contains("PowerManager.PARTIAL_WAKE_LOCK"));
         assertTrue(source.contains("SystemClock.elapsedRealtime()"));
@@ -19,6 +21,11 @@ public final class BackgroundContinuitySourceTest {
         assertTrue(source.contains("setExactAndAllowWhileIdle"));
         assertTrue(source.contains("releaseWakeLock()"));
         assertTrue(source.contains("cancelRecovery()"));
+        assertTrue(source.contains("EXTRA_PREP_SECONDS"));
+        assertTrue(source.contains("state.preparationRemainingMs"));
+        assertTrue(source.contains("scheduleRecoveryAt"));
+        assertTrue(store.contains("prep_duration_ms"));
+        assertTrue(store.contains("prep_before_ms"));
     }
 
     @Test

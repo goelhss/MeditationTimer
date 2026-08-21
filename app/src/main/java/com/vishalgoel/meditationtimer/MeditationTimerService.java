@@ -44,6 +44,7 @@ public final class MeditationTimerService extends Service {
     public static final String EXTRA_VIBRATION_ENABLED = "vibration_enabled";
     public static final String EXTRA_CHIME_SOUND_ID = "chime_sound_id";
     public static final String EXTRA_DISPLAY_MODE_ID = "display_mode_id";
+    public static final String EXTRA_PREP_SECONDS = "prep_seconds";
 
     private static final String CHANNEL_TIMER = "meditation_timer_running";
     private static final int NOTIFICATION_TIMER = 2101;
@@ -137,9 +138,11 @@ public final class MeditationTimerService extends Service {
                 intent.getBooleanExtra(EXTRA_CHIMES_ENABLED, true),
                 intent.getBooleanExtra(EXTRA_VIBRATION_ENABLED, false),
                 intent.getStringExtra(EXTRA_CHIME_SOUND_ID),
-                intent.getStringExtra(EXTRA_DISPLAY_MODE_ID));
+                intent.getStringExtra(EXTRA_DISPLAY_MODE_ID),
+                Math.max(0L, intent.getIntExtra(EXTRA_PREP_SECONDS, 15)) * 1000L);
         stateStore.save(state);
-        diagnostics.record("timer.start duration_ms=" + state.durationMs);
+        diagnostics.record("timer.start duration_ms=" + state.durationMs
+                + " prep_ms=" + state.prepDurationMs);
         acquireWakeLock();
         ensureForeground();
         scheduleRecovery();
@@ -231,6 +234,14 @@ public final class MeditationTimerService extends Service {
             return;
         }
         long realtime = SystemClock.elapsedRealtime();
+        if (!state.paused && state.preparing
+                && state.preparationRemainingMs(realtime) == 0L) {
+            state.finishPreparation(System.currentTimeMillis(), realtime);
+            stateStore.save(state);
+            diagnostics.record("timer.preparation_complete");
+            scheduleRecovery();
+            broadcast(EVENT_STATE_CHANGED);
+        }
         long elapsed = state.elapsedActiveMs(realtime);
         if (!state.paused && elapsed >= state.durationMs) {
             finish(true);
@@ -253,7 +264,9 @@ public final class MeditationTimerService extends Service {
                 lastPersistRealtimeMs = realtime;
             }
         }
-        long remainingSecond = (state.remainingMs(realtime) + 999L) / 1000L;
+        long visibleRemaining = state.preparing ? state.preparationRemainingMs(realtime)
+                : state.remainingMs(realtime);
+        long remainingSecond = (visibleRemaining + 999L) / 1000L;
         if (remainingSecond != lastNotificationSecond) {
             updateNotification(false);
             lastNotificationSecond = remainingSecond;
@@ -288,7 +301,7 @@ public final class MeditationTimerService extends Service {
         releaseWakeLock();
         cancelRecovery();
         PendingMeditationStore.Pending pending = new PendingMeditationStore(this)
-                .create(state.startWallMs, endWall, activeDuration);
+                .create(Math.min(state.startWallMs, endWall), endWall, activeDuration);
         diagnostics.record((naturalCompletion ? "timer.complete" : "timer.end")
                 + " duration_ms=" + activeDuration);
         updateCompletionNotification(pending);
@@ -339,9 +352,15 @@ public final class MeditationTimerService extends Service {
     }
 
     private Notification buildTimerNotification() {
-        long remaining = state.remainingMs(SystemClock.elapsedRealtime());
-        String title = state.paused ? "Meditation paused" : "Meditation in progress";
-        String text = formatCountdown(remaining) + (state.paused ? " remaining" : " remaining · screen-lock safe");
+        long realtime = SystemClock.elapsedRealtime();
+        long remaining = state.preparing ? state.preparationRemainingMs(realtime)
+                : state.remainingMs(realtime);
+        String title = state.preparing ? (state.paused ? "Preparation paused" : "Get ready")
+                : (state.paused ? "Meditation paused" : "Meditation in progress");
+        String text = state.preparing
+                ? "Meditation begins in " + formatCountdown(remaining)
+                : formatCountdown(remaining)
+                        + (state.paused ? " remaining" : " remaining · screen-lock safe");
         PendingIntent open = PendingIntent.getActivity(this, 0,
                 new Intent(this, MainActivity.class), immutableFlags(PendingIntent.FLAG_UPDATE_CURRENT));
         String action = state.paused ? ACTION_RESUME : ACTION_PAUSE;
@@ -401,15 +420,25 @@ public final class MeditationTimerService extends Service {
         if (state == null || !state.active || state.paused) {
             return;
         }
-        AlarmManager alarms = getSystemService(AlarmManager.class);
-        long elapsed = state.elapsedActiveMs(SystemClock.elapsedRealtime());
+        long realtime = SystemClock.elapsedRealtime();
+        if (state.preparing) {
+            long trigger = realtime + Math.max(1000L, state.preparationRemainingMs(realtime));
+            scheduleRecoveryAt(trigger);
+            return;
+        }
+        long elapsed = state.elapsedActiveMs(realtime);
         TimerSchedule schedule = scheduleForState();
         long nextActive = state.durationMs;
         List<TimerSchedule.Cue> future = schedule.cuesBetween(elapsed, state.durationMs);
         if (!future.isEmpty()) {
             nextActive = future.get(0).elapsedMs();
         }
-        long trigger = SystemClock.elapsedRealtime() + Math.max(1000L, nextActive - elapsed);
+        long trigger = realtime + Math.max(1000L, nextActive - elapsed);
+        scheduleRecoveryAt(trigger);
+    }
+
+    private void scheduleRecoveryAt(long trigger) {
+        AlarmManager alarms = getSystemService(AlarmManager.class);
         PendingIntent recovery = recoveryIntent();
         try {
             if (Build.VERSION.SDK_INT < 31 || alarms.canScheduleExactAlarms()) {
@@ -464,7 +493,7 @@ public final class MeditationTimerService extends Service {
     private void acquireWakeLock() {
         if (!wakeLock.isHeld()) {
             long remaining = state == null ? 60_000L
-                    : state.remainingMs(SystemClock.elapsedRealtime());
+                    : state.totalRemainingMs(SystemClock.elapsedRealtime());
             wakeLock.acquire(Math.max(60_000L, remaining + 60_000L));
         }
     }

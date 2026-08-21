@@ -80,8 +80,13 @@ public final class AnalogTimerView extends View {
         paint.setStyle(Paint.Style.FILL);
         canvas.drawCircle(cx, cy, dp(10), paint);
 
-        long totalMinutes = Math.max(0L, (remainingMs + 59_999L) / 60_000L);
-        String label = String.format(Locale.US, "%d min", totalMinutes);
+        long totalSeconds = Math.max(0L, (remainingMs + 999L) / 1000L);
+        long hours = totalSeconds / 3600L;
+        long minutes = totalSeconds % 3600L / 60L;
+        long seconds = totalSeconds % 60L;
+        String label = hours > 0L
+                ? String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
+                : String.format(Locale.US, "%02d:%02d", minutes, seconds);
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setTextSize(dp(25));
         paint.setColor(Color.rgb(38, 53, 68));

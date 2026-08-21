@@ -66,4 +66,37 @@ public final class TimerStateTest {
         assertThrows(IllegalArgumentException.class, () ->
                 TimerState.start(schedule, 1_000L, 10_000L, true, false, false));
     }
+
+    @Test
+    public void preparationTimePrecedesAndIsExcludedFromMeditation() {
+        TimerState state = TimerState.start(new TimerSchedule(60, 5, 10, 10),
+                1_000L, 10_000L, true, true, false,
+                ChimeSound.MEDITATION_BOWL.id(), TimerDisplayMode.DIGITAL.id(), 15_000L);
+
+        assertTrue(state.preparing);
+        assertEquals(15_000L, state.preparationRemainingMs(10_000L));
+        assertEquals(0L, state.elapsedActiveMs(20_000L));
+
+        state.finishPreparation(17_000L, 26_000L);
+
+        assertFalse(state.preparing);
+        assertEquals(16_000L, state.startWallMs);
+        assertEquals(1_000L, state.elapsedActiveMs(26_000L));
+    }
+
+    @Test
+    public void preparationCanPauseResumeAndRestart() {
+        TimerState state = TimerState.start(new TimerSchedule(60, 5, 10, 10),
+                1_000L, 10_000L, true, true, false,
+                ChimeSound.DEFAULT.id(), TimerDisplayMode.DEFAULT.id(), 15_000L);
+        state.pause(15_000L);
+        assertEquals(10_000L, state.preparationRemainingMs(40_000L));
+        state.resume(50_000L);
+        assertEquals(5_000L, state.preparationRemainingMs(55_000L));
+
+        state.restart(80_000L, 90_000L);
+        assertTrue(state.preparing);
+        assertEquals(15_000L, state.preparationRemainingMs(90_000L));
+        assertEquals(95_000L, state.startWallMs);
+    }
 }

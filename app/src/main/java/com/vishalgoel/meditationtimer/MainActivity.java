@@ -5,6 +5,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.AlertDialog;
+import android.app.DatePickerDialog;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.TimePickerDialog;
@@ -34,6 +35,7 @@ import android.widget.Button;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
@@ -59,6 +61,7 @@ public final class MainActivity extends Activity {
     public static final String EXTRA_OPEN_TAB = "open_tab";
     public static final String TAB_TIMER = "timer";
     private static final String TAB_LOGS = "logs";
+    private static final String TAB_RESOLUTION = "resolution";
     private static final String TAB_REMINDER = "reminder";
     private static final String TAB_ABOUT = "about";
     private static final String SETTINGS_PREFS = "timer_settings";
@@ -71,17 +74,21 @@ public final class MainActivity extends Activity {
     private LinearLayout content;
     private Button timerTab;
     private Button logsTab;
+    private Button resolutionTab;
     private Button reminderTab;
     private Button aboutTab;
     private TextView countdownView;
     private AnalogTimerView analogTimerView;
     private TextView activeStatusView;
+    private TextView activeProgressView;
     private String selectedTab = TAB_TIMER;
     private boolean mainUiShown;
     private boolean receiverRegistered;
     private String renderedStateKey = "";
     private AlertDialog pendingDialog;
     private String pendingDialogId = "";
+    private String dismissedPendingDialogId = "";
+    private TextView pendingMessageView;
     private ToneDingPlayer previewPlayer;
 
     private final BroadcastReceiver stateReceiver = new BroadcastReceiver() {
@@ -99,18 +106,26 @@ public final class MainActivity extends Activity {
                 return;
             }
             TimerState state = new TimerStateStore(MainActivity.this).load();
-            String key = state.active + ":" + state.paused + ":" + state.startWallMs;
+            String key = state.active + ":" + state.paused + ":" + state.preparing
+                    + ":" + state.startWallMs;
             if (!key.equals(renderedStateKey) && TAB_TIMER.equals(selectedTab)) {
                 renderSelectedTab();
             } else if (state.active && (countdownView != null || analogTimerView != null)) {
-                long remaining = state.remainingMs(SystemClock.elapsedRealtime());
+                long realtime = SystemClock.elapsedRealtime();
+                long remaining = state.preparing ? state.preparationRemainingMs(realtime)
+                        : state.remainingMs(realtime);
                 if (countdownView != null) {
                     countdownView.setText(MeditationTimerService.formatCountdown(remaining));
                 }
                 if (analogTimerView != null) {
                     analogTimerView.setTime(remaining, state.durationMs);
                 }
-                activeStatusView.setText(state.paused ? "Paused" : "Meditating");
+                activeStatusView.setText(state.preparing
+                        ? (state.paused ? "Preparation paused" : "Get ready")
+                        : (state.paused ? "Paused" : "Meditating"));
+                if (activeProgressView != null) {
+                    activeProgressView.setText(progressText(state, realtime));
+                }
                 applyScreenMode(state);
             }
             new PendingMeditationStore(MainActivity.this)
@@ -138,7 +153,8 @@ public final class MainActivity extends Activity {
         }
         String requested = intent.getStringExtra(EXTRA_OPEN_TAB);
         if (TAB_TIMER.equals(requested) || TAB_LOGS.equals(requested)
-                || TAB_REMINDER.equals(requested) || TAB_ABOUT.equals(requested)) {
+                || TAB_RESOLUTION.equals(requested) || TAB_REMINDER.equals(requested)
+                || TAB_ABOUT.equals(requested)) {
             selectedTab = requested;
         }
     }
@@ -159,16 +175,26 @@ public final class MainActivity extends Activity {
         root.addView(title, matchWrap());
 
         LinearLayout tabs = new LinearLayout(this);
-        tabs.setOrientation(LinearLayout.HORIZONTAL);
+        tabs.setOrientation(LinearLayout.VERTICAL);
         tabs.setPadding(dp(8), 0, dp(8), dp(8));
+        LinearLayout topTabs = new LinearLayout(this);
+        topTabs.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout bottomTabs = new LinearLayout(this);
+        bottomTabs.setOrientation(LinearLayout.HORIZONTAL);
         timerTab = tabButton("Timer", TAB_TIMER);
         logsTab = tabButton("Logs", TAB_LOGS);
+        resolutionTab = tabButton("Resolution", TAB_RESOLUTION);
         reminderTab = tabButton("Reminder", TAB_REMINDER);
         aboutTab = tabButton("About", TAB_ABOUT);
-        tabs.addView(timerTab, weighted());
-        tabs.addView(logsTab, weighted());
-        tabs.addView(reminderTab, weighted());
-        tabs.addView(aboutTab, weighted());
+        topTabs.addView(timerTab, weighted());
+        topTabs.addView(logsTab, weighted());
+        topTabs.addView(resolutionTab, weighted());
+        bottomTabs.addView(reminderTab, weighted());
+        bottomTabs.addView(aboutTab, weighted());
+        tabs.addView(topTabs, matchWrap());
+        LinearLayout.LayoutParams bottomTabsParams = matchWrap();
+        bottomTabsParams.topMargin = dp(5);
+        tabs.addView(bottomTabs, bottomTabsParams);
         root.addView(tabs, matchWrap());
 
         content = new LinearLayout(this);
@@ -199,10 +225,14 @@ public final class MainActivity extends Activity {
         }
         content.removeAllViews();
         countdownView = null;
+        analogTimerView = null;
         activeStatusView = null;
+        activeProgressView = null;
         updateTabStyles();
         if (TAB_LOGS.equals(selectedTab)) {
             renderLogs();
+        } else if (TAB_RESOLUTION.equals(selectedTab)) {
+            renderResolution();
         } else if (TAB_REMINDER.equals(selectedTab)) {
             renderReminder();
         } else if (TAB_ABOUT.equals(selectedTab)) {
@@ -215,6 +245,7 @@ public final class MainActivity extends Activity {
     private void updateTabStyles() {
         styleTab(timerTab, TAB_TIMER.equals(selectedTab));
         styleTab(logsTab, TAB_LOGS.equals(selectedTab));
+        styleTab(resolutionTab, TAB_RESOLUTION.equals(selectedTab));
         styleTab(reminderTab, TAB_REMINDER.equals(selectedTab));
         styleTab(aboutTab, TAB_ABOUT.equals(selectedTab));
     }
@@ -231,7 +262,8 @@ public final class MainActivity extends Activity {
 
     private void renderTimer() {
         TimerState state = new TimerStateStore(this).load();
-        renderedStateKey = state.active + ":" + state.paused + ":" + state.startWallMs;
+        renderedStateKey = state.active + ":" + state.paused + ":" + state.preparing
+                + ":" + state.startWallMs;
         if (state.active) {
             renderActiveTimer(state);
         } else {
@@ -251,7 +283,9 @@ public final class MainActivity extends Activity {
         EditText primary = numberField(settings.getInt("primary", 5));
         EditText additional = numberField(settings.getInt("additional", 10));
         EditText finish = numberField(settings.getInt("finish", 10));
+        EditText prep = numberField(settings.getInt("prep_seconds", 15));
         form.addView(labeledField("Meditation duration (minutes)", duration));
+        form.addView(labeledField("Preparation time (seconds)", prep));
         form.addView(labeledField("One ding every (minutes)", primary));
         form.addView(labeledField("One additional ding every (minutes)", additional));
         form.addView(labeledField("Dings when finished", finish));
@@ -298,6 +332,7 @@ public final class MainActivity extends Activity {
                 int primaryValue = parsePositive(primary);
                 int additionalValue = parsePositive(additional);
                 int finishValue = parsePositive(finish);
+                int prepValue = parseNonNegative(prep);
                 new TimerSchedule(durationValue, primaryValue, additionalValue, finishValue);
                 if (!chimes.isChecked() && !vibrate.isChecked()) {
                     throw new IllegalArgumentException("Enable Chimes, Vibrate, or both.");
@@ -307,6 +342,7 @@ public final class MainActivity extends Activity {
                         .putInt("primary", primaryValue)
                         .putInt("additional", additionalValue)
                         .putInt("finish", finishValue)
+                        .putInt("prep_seconds", prepValue)
                         .putBoolean("chimes", chimes.isChecked())
                         .putBoolean("vibrate", vibrate.isChecked())
                         .putString("chime_sound",
@@ -322,6 +358,7 @@ public final class MainActivity extends Activity {
                         .putExtra(MeditationTimerService.EXTRA_PRIMARY_MINUTES, primaryValue)
                         .putExtra(MeditationTimerService.EXTRA_ADDITIONAL_MINUTES, additionalValue)
                         .putExtra(MeditationTimerService.EXTRA_FINISH_DINGS, finishValue)
+                        .putExtra(MeditationTimerService.EXTRA_PREP_SECONDS, prepValue)
                         .putExtra(MeditationTimerService.EXTRA_CHIMES_ENABLED,
                                 chimes.isChecked())
                         .putExtra(MeditationTimerService.EXTRA_VIBRATION_ENABLED,
@@ -353,7 +390,9 @@ public final class MainActivity extends Activity {
         analogTimerView = null;
         LinearLayout page = pageColumn();
         activeStatusView = new TextView(this);
-        activeStatusView.setText(state.paused ? "Paused" : "Meditating");
+        activeStatusView.setText(state.preparing
+                ? (state.paused ? "Preparation paused" : "Get ready")
+                : (state.paused ? "Paused" : "Meditating"));
         activeStatusView.setTextSize(20);
         activeStatusView.setTextColor(accentTextColor());
         activeStatusView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
@@ -361,7 +400,8 @@ public final class MainActivity extends Activity {
         page.addView(activeStatusView, matchWrap());
 
         LinearLayout.LayoutParams clockParams;
-        if (TimerDisplayMode.fromId(state.displayModeId) == TimerDisplayMode.ANALOG) {
+        if (!state.preparing
+                && TimerDisplayMode.fromId(state.displayModeId) == TimerDisplayMode.ANALOG) {
             analogTimerView = new AnalogTimerView(this);
             analogTimerView.setTime(state.remainingMs(SystemClock.elapsedRealtime()),
                     state.durationMs);
@@ -370,7 +410,9 @@ public final class MainActivity extends Activity {
         } else {
             countdownView = new TextView(this);
             countdownView.setText(MeditationTimerService.formatCountdown(
-                    state.remainingMs(SystemClock.elapsedRealtime())));
+                    state.preparing
+                            ? state.preparationRemainingMs(SystemClock.elapsedRealtime())
+                            : state.remainingMs(SystemClock.elapsedRealtime())));
             countdownView.setTextSize(58);
             countdownView.setTextColor(Color.rgb(22, 58, 107));
             countdownView.setTypeface(Typeface.create("sans-serif-condensed", Typeface.BOLD));
@@ -387,7 +429,15 @@ public final class MainActivity extends Activity {
         clockParams.bottomMargin = dp(18);
         page.addView(analogTimerView != null ? analogTimerView : countdownView, clockParams);
 
-        TextView detail = bodyText("Primary ding every " + state.primaryMs / TimerSchedule.MINUTE_MS
+        activeProgressView = bodyText(progressText(state, SystemClock.elapsedRealtime()));
+        activeProgressView.setTextSize(18);
+        activeProgressView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        activeProgressView.setGravity(Gravity.CENTER);
+        activeProgressView.setPadding(0, 0, 0, dp(12));
+        page.addView(activeProgressView, matchWrap());
+
+        TextView detail = bodyText("Preparation: " + state.prepDurationMs / 1000L + " sec"
+                + "\nPrimary ding every " + state.primaryMs / TimerSchedule.MINUTE_MS
                 + " min · additional ding every " + state.additionalMs / TimerSchedule.MINUTE_MS
                 + " min\nCompletion: " + state.finishDings + " dings"
                 + " · " + cueModeLabel(state.chimesEnabled, state.vibrationEnabled)
@@ -528,6 +578,100 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams allParams = fullButtonParams();
         allParams.topMargin = dp(8);
         page.addView(deleteAll, allParams);
+        content.addView(scroll(page), fill());
+    }
+
+    private void renderResolution() {
+        restoreScreenMode();
+        LinearLayout page = pageColumn();
+        page.addView(sectionTitle("Resolution"), matchWrap());
+        page.addView(bodyText("Record the promises you have made to your meditation practice, so you can return to them later."),
+                matchWrap());
+
+        Calendar selectedDate = Calendar.getInstance();
+        selectedDate.set(Calendar.HOUR_OF_DAY, 12);
+        selectedDate.set(Calendar.MINUTE, 0);
+        selectedDate.set(Calendar.SECOND, 0);
+        selectedDate.set(Calendar.MILLISECOND, 0);
+        Button date = actionButton(formatResolutionDate(selectedDate.getTimeInMillis()), false);
+        date.setOnClickListener(view -> new DatePickerDialog(this, (picker, year, month, day) -> {
+            selectedDate.set(Calendar.YEAR, year);
+            selectedDate.set(Calendar.MONTH, month);
+            selectedDate.set(Calendar.DAY_OF_MONTH, day);
+            date.setText(formatResolutionDate(selectedDate.getTimeInMillis()));
+        }, selectedDate.get(Calendar.YEAR), selectedDate.get(Calendar.MONTH),
+                selectedDate.get(Calendar.DAY_OF_MONTH)).show());
+        page.addView(labeledControl("Date", date));
+
+        TextView commentLabel = bodyText("Comment");
+        commentLabel.setTextColor(accentTextColor());
+        commentLabel.setPadding(0, dp(10), 0, dp(5));
+        page.addView(commentLabel, matchWrap());
+        EditText comment = new EditText(this);
+        comment.setHint("For example: I resolve to meditate for one hour daily.");
+        comment.setTextColor(Color.rgb(38, 53, 68));
+        comment.setHintTextColor(Color.rgb(100, 112, 124));
+        comment.setTextSize(17);
+        comment.setGravity(Gravity.TOP | Gravity.START);
+        comment.setMinLines(3);
+        comment.setPadding(dp(12), dp(10), dp(12), dp(10));
+        comment.setBackground(cardBackground(Color.WHITE));
+        page.addView(comment, matchWrap());
+
+        Button save = actionButton("Save resolution", true);
+        LinearLayout.LayoutParams saveParams = fullButtonParams();
+        saveParams.topMargin = dp(12);
+        save.setOnClickListener(view -> {
+            try {
+                new ResolutionStore(this).add(selectedDate.getTimeInMillis(),
+                        comment.getText().toString());
+                Toast.makeText(this, "Resolution saved.", Toast.LENGTH_SHORT).show();
+                renderSelectedTab();
+            } catch (IllegalArgumentException error) {
+                new AlertDialog.Builder(this)
+                        .setTitle("Add a comment")
+                        .setMessage(error.getMessage())
+                        .setPositiveButton("OK", null)
+                        .show();
+            }
+        });
+        page.addView(save, saveParams);
+
+        page.addView(subsectionTitle("Past resolutions"), matchWrap());
+        List<Resolution> resolutions = new ResolutionStore(this).all();
+        if (resolutions.isEmpty()) {
+            page.addView(bodyText("No resolutions recorded yet."), matchWrap());
+        } else {
+            for (Resolution resolution : resolutions) {
+                LinearLayout card = new LinearLayout(this);
+                card.setOrientation(LinearLayout.VERTICAL);
+                card.setPadding(dp(12), dp(10), dp(12), dp(10));
+                card.setBackground(cardBackground(Color.WHITE));
+                TextView savedDate = bodyText(formatResolutionDate(resolution.dateMs()));
+                savedDate.setTextColor(Color.rgb(87, 56, 158));
+                savedDate.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+                card.addView(savedDate, matchWrap());
+                TextView savedComment = bodyText(resolution.comment());
+                savedComment.setTextColor(Color.rgb(38, 53, 68));
+                savedComment.setPadding(0, dp(6), 0, dp(6));
+                card.addView(savedComment, matchWrap());
+                Button delete = actionButton("Delete", false);
+                delete.setTextColor(Color.rgb(179, 38, 30));
+                delete.setOnClickListener(view -> new AlertDialog.Builder(this)
+                        .setTitle("Delete this resolution?")
+                        .setMessage(formatResolutionDate(resolution.dateMs()) + "\n\n"
+                                + resolution.comment())
+                        .setNegativeButton("Cancel", null)
+                        .setPositiveButton("Delete", (dialog, which) -> {
+                            new ResolutionStore(this).delete(resolution.id());
+                            renderSelectedTab();
+                        }).show());
+                card.addView(delete, fullButtonParams());
+                LinearLayout.LayoutParams cardParams = fullButtonParams();
+                cardParams.bottomMargin = dp(10);
+                page.addView(card, cardParams);
+            }
+        }
         content.addView(scroll(page), fill());
     }
 
@@ -768,7 +912,9 @@ public final class MainActivity extends Activity {
         page.addView(clearDiagnostics, clearParams);
 
         page.addView(subsectionTitle("Version history"), matchWrap());
-        page.addView(bodyText("1.4.0 · August 18, 2026\n"
+        page.addView(bodyText("1.5.0 · August 21, 2026\n"
+                + "Meditation Bowl, preparation countdown, visible elapsed time, a Well done lotus, and meditation resolutions.\n\n"
+                + "1.4.0 · August 18, 2026\n"
                 + "Live Dim control joins the running-session Chimes and Vibrate controls.\n\n"
                 + "1.3.0 · August 18, 2026\n"
                 + "Live Chimes and Vibrate controls, including silent mode during a running session.\n\n"
@@ -795,10 +941,12 @@ public final class MainActivity extends Activity {
         }
         preferences.edit().putInt("last_whats_new", BuildConfig.VERSION_CODE).apply();
         new AlertDialog.Builder(this)
-                .setTitle("What’s new in 1.4.0")
-                .setMessage("• Live Chimes, Vibrate, and Dim switches on the running timer\n"
-                        + "• Changes take effect without pausing or restarting\n"
-                        + "• Turn both cue switches off for a silent session")
+                .setTitle("What’s new in 1.5.0")
+                .setMessage("• New Meditation Bowl sound\n"
+                        + "• Configurable preparation countdown, defaulting to 15 seconds\n"
+                        + "• Clearly visible elapsed and remaining time\n"
+                        + "• Well done celebration with a purple lotus\n"
+                        + "• Resolution tab for recording meditation commitments")
                 .setPositiveButton("Continue", null)
                 .show();
     }
@@ -830,6 +978,11 @@ public final class MainActivity extends Activity {
             }
             pendingDialog = null;
             pendingDialogId = "";
+            pendingMessageView = null;
+            dismissedPendingDialogId = "";
+            return;
+        }
+        if (pending.id().equals(dismissedPendingDialogId)) {
             return;
         }
         if (pending.id().equals(pendingDialogId) && pendingDialog != null
@@ -839,28 +992,54 @@ public final class MainActivity extends Activity {
         }
         pendingDialogId = pending.id();
         pendingDialog = new AlertDialog.Builder(this)
-                .setTitle("Log this meditation?")
-                .setMessage(pendingMessage(pending))
+                .setTitle("Well done.")
+                .setView(completionPromptView(pending))
                 .setPositiveButton("Yes, log it", (dialog, which) ->
                         sendTimerAction(MeditationTimerService.ACTION_LOG_YES))
                 .setNegativeButton("No", (dialog, which) ->
                         sendTimerAction(MeditationTimerService.ACTION_LOG_NO))
+                .setNeutralButton("Dismiss", null)
                 .create();
-        pendingDialog.setOnDismissListener(dialog -> pendingDialogId = "");
+        pendingDialog.setOnDismissListener(dialog -> {
+            if (new PendingMeditationStore(this).get() != null) {
+                dismissedPendingDialogId = pending.id();
+            }
+            pendingDialogId = "";
+            pendingMessageView = null;
+        });
         pendingDialog.show();
     }
 
+    private View completionPromptView(PendingMeditationStore.Pending pending) {
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.CENTER_HORIZONTAL);
+        panel.setPadding(dp(24), dp(4), dp(24), dp(6));
+        ImageView lotus = new ImageView(this);
+        lotus.setImageResource(R.drawable.lotus_splash);
+        lotus.setContentDescription("Purple lotus");
+        lotus.setAdjustViewBounds(true);
+        panel.addView(lotus, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+        pendingMessageView = bodyText(pendingMessage(pending));
+        pendingMessageView.setTextColor(Color.rgb(38, 53, 68));
+        pendingMessageView.setGravity(Gravity.CENTER);
+        panel.addView(pendingMessageView, matchWrap());
+        return panel;
+    }
+
     private void updatePendingMessage(PendingMeditationStore.Pending pending) {
-        if (pendingDialog != null) {
-            pendingDialog.setMessage(pendingMessage(pending));
+        if (pendingMessageView != null) {
+            pendingMessageView.setText(pendingMessage(pending));
         }
     }
 
     private String pendingMessage(PendingMeditationStore.Pending pending) {
         long seconds = CompletionDecisionPolicy.secondsRemaining(
                 pending.decisionDeadlineMs(), System.currentTimeMillis());
-        return "Active meditation: " + LogTextExporter.formatDuration(pending.durationMs())
-                + "\n\nYes will be selected automatically in " + seconds + " seconds.";
+        return "You completed " + LogTextExporter.formatDuration(pending.durationMs())
+                + " of meditation.\n\nLog this session? Yes will be selected automatically in "
+                + seconds + " seconds.";
     }
 
     private void sendTimerAction(String action) {
@@ -1031,6 +1210,17 @@ public final class MainActivity extends Activity {
         return vibrationEnabled ? "vibration" : "silent";
     }
 
+    private String progressText(TimerState state, long realtimeMs) {
+        if (state.preparing) {
+            return "Meditation begins in " + MeditationTimerService.formatCountdown(
+                    state.preparationRemainingMs(realtimeMs));
+        }
+        return "Elapsed " + MeditationTimerService.formatCountdown(
+                state.elapsedActiveMs(realtimeMs))
+                + "  ·  Remaining " + MeditationTimerService.formatCountdown(
+                        state.remainingMs(realtimeMs));
+    }
+
     private String formatClockTime(int hour, int minute) {
         Calendar time = Calendar.getInstance();
         time.set(Calendar.HOUR_OF_DAY, hour);
@@ -1040,6 +1230,11 @@ public final class MainActivity extends Activity {
 
     private String formatReminderDate(long wallTimeMs) {
         return new SimpleDateFormat("EEE, MMM d 'at' h:mm a", Locale.US)
+                .format(new Date(wallTimeMs));
+    }
+
+    private String formatResolutionDate(long wallTimeMs) {
+        return new SimpleDateFormat("MMM d, yyyy", Locale.US)
                 .format(new Date(wallTimeMs));
     }
 
@@ -1056,9 +1251,25 @@ public final class MainActivity extends Activity {
 
     private int parsePositive(EditText field) {
         try {
-            return Integer.parseInt(field.getText().toString().trim());
+            int value = Integer.parseInt(field.getText().toString().trim());
+            if (value <= 0) {
+                throw new NumberFormatException();
+            }
+            return value;
         } catch (NumberFormatException error) {
             throw new IllegalArgumentException("Enter whole positive numbers for every timer value.");
+        }
+    }
+
+    private int parseNonNegative(EditText field) {
+        try {
+            int value = Integer.parseInt(field.getText().toString().trim());
+            if (value < 0) {
+                throw new NumberFormatException();
+            }
+            return value;
+        } catch (NumberFormatException error) {
+            throw new IllegalArgumentException("Preparation time must be zero or more seconds.");
         }
     }
 

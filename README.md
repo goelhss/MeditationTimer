@@ -1,8 +1,8 @@
 # Meditation Timer
 
-A calm Android phone timer with digital/analog countdowns, live-switchable chimes, vibration and dimming, reliable screen-locked operation, configurable local reminders, session logs, and text-file sharing.
+A calm Android phone timer with digital/analog countdowns, preparation time, live-switchable chimes, vibration and dimming, reliable screen-locked operation, configurable local reminders, session logs, resolutions, and text-file sharing.
 
-Version 1.1.0 adds a large lotus launch screen, chimes/vibration modes, and a Reminder tab with daily or selected-day schedules.
+Version 1.5.0 adds a Meditation Bowl, a visible seconds-level countdown, a purple-lotus completion celebration, and a Resolution tab for dated commitments.
 
 ## Build
 
