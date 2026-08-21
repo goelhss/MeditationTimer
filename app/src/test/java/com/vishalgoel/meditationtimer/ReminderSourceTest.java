@@ -19,7 +19,8 @@ public final class ReminderSourceTest {
         assertTrue(receiver.contains("MainActivity.EXTRA_OPEN_TAB"));
         assertTrue(receiver.contains("MainActivity.TAB_TIMER"));
         assertTrue(receiver.contains("Notification.CATEGORY_REMINDER"));
-        assertTrue(receiver.contains("MeditationStats.streak"));
+        assertTrue(receiver.contains("new StreakStore(context).snapshot"));
+        assertTrue(receiver.contains("if (!useStreakEncouragement)"));
         assertTrue(receiver.contains("Grow old with a healthy soul. Meditate daily"));
     }
 
@@ -31,6 +32,7 @@ public final class ReminderSourceTest {
         assertTrue(source.contains("Meditation Reminder"));
         assertTrue(source.contains("Remind me to meditate"));
         assertTrue(source.contains("Save reminder"));
+        assertTrue(source.contains("Include streak encouragement in reminders"));
         assertTrue(source.contains("ReminderSchedule.Frequency.values()"));
         assertTrue(source.contains("requestNotificationPermissionIfNeeded()"));
     }

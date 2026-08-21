@@ -8,4 +8,6 @@
         requireFlags="clientSideEncryption" />
     <include domain="sharedpref" path="meditation_reminder.xml"
         requireFlags="clientSideEncryption" />
+    <include domain="sharedpref" path="streak_settings.xml"
+        requireFlags="clientSideEncryption" />
 </full-backup-content>

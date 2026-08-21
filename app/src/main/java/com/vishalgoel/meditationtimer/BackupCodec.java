@@ -50,6 +50,25 @@ public final class BackupCodec {
             reminderJson.put("minute", reminder.minute());
             reminderJson.put("customDays", reminder.customDaysMask());
             root.put("reminder", reminderJson);
+
+            StreakSettings streak = snapshot.streak();
+            JSONObject streakJson = new JSONObject();
+            streakJson.put("countingEnabled", streak.countingEnabled());
+            streakJson.put("reminderEnabled", streak.reminderEnabled());
+            streakJson.put("paused", streak.paused());
+            streakJson.put("pauseStarted", streak.pauseStartedMs());
+            streakJson.put("pauseUntil", streak.pauseUntilMs());
+            streakJson.put("resetEpochDay", streak.resetEpochDay());
+            streakJson.put("longestEver", streak.longestEver());
+            JSONArray windowsJson = new JSONArray();
+            for (MeditationStats.VacationWindow window : streak.vacationWindows()) {
+                JSONObject windowJson = new JSONObject();
+                windowJson.put("startEpochDay", window.startEpochDay());
+                windowJson.put("endEpochDayExclusive", window.endEpochDayExclusive());
+                windowsJson.put(windowJson);
+            }
+            streakJson.put("vacationWindows", windowsJson);
+            root.put("streak", streakJson);
             String json = root.toString(2);
             if (json.getBytes(java.nio.charset.StandardCharsets.UTF_8).length
                     > MAX_BACKUP_BYTES) {
@@ -124,8 +143,35 @@ public final class BackupCodec {
                     requiredInt(reminderJson, "hour"),
                     requiredInt(reminderJson, "minute"),
                     requiredInt(reminderJson, "customDays"));
+
+            StreakSettings streak = StreakSettings.defaults();
+            if (root.has("streak")) {
+                JSONObject streakJson = requiredObject(root, "streak");
+                JSONArray windowsJson = requiredArray(streakJson, "vacationWindows");
+                if (windowsJson.length() > StreakSettings.MAX_VACATION_WINDOWS) {
+                    throw new IllegalArgumentException(
+                            "The backup contains too many streak pauses.");
+                }
+                java.util.ArrayList<MeditationStats.VacationWindow> windows =
+                        new java.util.ArrayList<>();
+                for (int index = 0; index < windowsJson.length(); index += 1) {
+                    JSONObject window = windowsJson.getJSONObject(index);
+                    windows.add(new MeditationStats.VacationWindow(
+                            requiredLong(window, "startEpochDay"),
+                            requiredLong(window, "endEpochDayExclusive")));
+                }
+                streak = new StreakSettings(
+                        requiredBoolean(streakJson, "countingEnabled"),
+                        requiredBoolean(streakJson, "reminderEnabled"),
+                        requiredBoolean(streakJson, "paused"),
+                        requiredLong(streakJson, "pauseStarted"),
+                        requiredLong(streakJson, "pauseUntil"),
+                        windows,
+                        requiredLong(streakJson, "resetEpochDay"),
+                        requiredInt(streakJson, "longestEver"));
+            }
             return new BackupSnapshot(root.optLong("generatedAt", 0L), logs, resolutions,
-                    timerSettings, reminder);
+                    timerSettings, reminder, streak);
         } catch (JSONException error) {
             throw new IllegalArgumentException("The backup is not valid JSON.", error);
         }
@@ -153,6 +199,14 @@ public final class BackupCodec {
             throw new IllegalArgumentException("The backup has an invalid " + key + ".");
         }
         return number.intValue();
+    }
+
+    private static long requiredLong(JSONObject object, String key) throws JSONException {
+        Object value = object.get(key);
+        if (!(value instanceof Number number)) {
+            throw new IllegalArgumentException("The backup has an invalid " + key + ".");
+        }
+        return number.longValue();
     }
 
     private static boolean requiredBoolean(JSONObject object, String key) throws JSONException {

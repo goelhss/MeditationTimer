@@ -23,6 +23,8 @@ public final class AnalogTimerView extends View {
     public void setTime(long remainingMs, long durationMs) {
         this.durationMs = Math.max(1L, durationMs);
         this.remainingMs = Math.max(0L, Math.min(this.durationMs, remainingMs));
+        setContentDescription("Analog countdown, "
+                + LogTextExporter.formatDuration(this.remainingMs) + " remaining");
         invalidate();
     }
 

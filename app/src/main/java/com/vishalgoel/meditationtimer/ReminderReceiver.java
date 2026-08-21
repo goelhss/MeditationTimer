@@ -37,18 +37,33 @@ public final class ReminderReceiver extends BroadcastReceiver {
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent open = PendingIntent.getActivity(context, 0, openTimer,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        MeditationStats.Streak streak = MeditationStats.streak(
+        StreakStore.Snapshot streak = new StreakStore(context).snapshot(
                 new MeditationLogStore(context).all(), System.currentTimeMillis(),
                 java.time.ZoneId.systemDefault());
-        String title = streak.currentDays() > 0
-                ? "Keep your " + streak.currentDays() + "-day meditation streak"
-                : "Begin your meditation streak";
-        String message = "Grow old with a healthy soul. Meditate daily for emotional, "
-                + "spiritual, and long-term well-being.";
+        boolean useStreakEncouragement = streak.reminderEnabled();
+        String title;
+        String shortMessage;
+        String message;
+        if (!useStreakEncouragement) {
+            title = "Time to meditate";
+            shortMessage = "A quiet moment is waiting for you.";
+            message = shortMessage;
+        } else if (streak.paused()) {
+            title = "A gentle meditation reminder";
+            shortMessage = "Your vacation pause is protected.";
+            message = "Your streak is paused for vacation. Meditate only if it feels right today.";
+        } else {
+            title = streak.countingEnabled() && streak.streak().currentDays() > 0
+                    ? "Keep your " + streak.streak().currentDays() + "-day meditation streak"
+                    : "A gentle reminder to meditate";
+            shortMessage = "Grow old with a healthy soul. Meditate daily.";
+            message = "Grow old with a healthy soul. Meditate daily for emotional, "
+                    + "spiritual, and long-term well-being.";
+        }
         Notification notification = new Notification.Builder(context, CHANNEL_REMINDERS)
                 .setSmallIcon(R.drawable.ic_meditation)
                 .setContentTitle(title)
-                .setContentText("Grow old with a healthy soul. Meditate daily.")
+                .setContentText(shortMessage)
                 .setStyle(new Notification.BigTextStyle().bigText(message))
                 .setContentIntent(open)
                 .setAutoCancel(true)

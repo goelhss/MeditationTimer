@@ -7,7 +7,19 @@ public record BackupSnapshot(
         List<MeditationLog> logs,
         List<Resolution> resolutions,
         TimerSettings settings,
-        ReminderSchedule reminder) {
+        ReminderSchedule reminder,
+        StreakSettings streak) {
+
+    public BackupSnapshot {
+        streak = streak == null ? StreakSettings.defaults() : streak;
+    }
+
+    public BackupSnapshot(long generatedAtMs, List<MeditationLog> logs,
+                          List<Resolution> resolutions, TimerSettings settings,
+                          ReminderSchedule reminder) {
+        this(generatedAtMs, logs, resolutions, settings, reminder,
+                StreakSettings.defaults());
+    }
 
     public record TimerSettings(
             int durationMinutes,

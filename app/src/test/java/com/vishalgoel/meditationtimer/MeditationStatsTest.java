@@ -63,6 +63,50 @@ public final class MeditationStatsTest {
         assertEquals(1, reset.bestDays());
     }
 
+    @Test
+    public void vacationWindowProtectsTheGapAndCountsOnlyMeditationDays() {
+        long now = at("2026-08-21", 20);
+        List<MeditationLog> logs = List.of(
+                log("before", "2026-08-01", 8, 30),
+                log("return", "2026-08-21", 8, 30));
+        MeditationStats.VacationWindow vacation = new MeditationStats.VacationWindow(
+                LocalDate.parse("2026-08-02").toEpochDay(),
+                LocalDate.parse("2026-08-22").toEpochDay());
+
+        MeditationStats.Streak streak = MeditationStats.streak(logs, now, UTC,
+                List.of(vacation), MeditationStats.NO_RESET_DAY);
+
+        assertEquals(2, streak.currentDays());
+        assertEquals(2, streak.bestDays());
+        assertTrue(streak.meditatedToday());
+    }
+
+    @Test
+    public void activeVacationDoesNotConsumeGraceDays() {
+        long now = at("2026-08-21", 20);
+        MeditationStats.VacationWindow vacation = new MeditationStats.VacationWindow(
+                LocalDate.parse("2026-08-02").toEpochDay(),
+                LocalDate.parse("2026-08-22").toEpochDay());
+
+        MeditationStats.Streak streak = MeditationStats.streak(
+                List.of(log("before", "2026-08-01", 8, 30)), now, UTC,
+                List.of(vacation), MeditationStats.NO_RESET_DAY);
+
+        assertEquals(1, streak.currentDays());
+        assertEquals(3, streak.graceDaysRemaining());
+    }
+
+    @Test
+    public void expiredVacationCanRestartGentlyAtOne() {
+        long now = at("2026-08-21", 20);
+
+        MeditationStats.Streak streak = MeditationStats.streak(List.of(), now, UTC,
+                List.of(), LocalDate.parse("2026-08-21").toEpochDay());
+
+        assertEquals(1, streak.currentDays());
+        assertEquals(1, streak.bestDays());
+    }
+
     private static MeditationLog log(String id, String date, int hour, int minutes) {
         long start = at(date, hour);
         return new MeditationLog(id, start, start + minutes * 60_000L,

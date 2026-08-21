@@ -29,6 +29,8 @@ public final class BackupSecuritySourceTest {
 
         assertTrue(modern.contains("disableIfNoEncryptionCapabilities=\"true\""));
         assertTrue(legacy.contains("requireFlags=\"clientSideEncryption\""));
+        assertTrue(modern.contains("streak_settings.xml"));
+        assertTrue(legacy.contains("streak_settings.xml"));
         assertFalse(modern.contains("diagnostics.xml"));
         assertFalse(modern.contains("timer_state.xml"));
         assertFalse(modern.contains("backup_status.xml"));

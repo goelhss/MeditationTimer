@@ -50,7 +50,16 @@ public final class MeditationStats {
                          int sessions, int meditationDays) {}
     public record Streak(int currentDays, int bestDays, int daysSinceLastMeditation,
                          int graceDaysRemaining, boolean meditatedToday) {}
+    public record VacationWindow(long startEpochDay, long endEpochDayExclusive) {
+        public VacationWindow {
+            if (endEpochDayExclusive <= startEpochDay) {
+                throw new IllegalArgumentException("A vacation window must contain a day.");
+            }
+        }
+    }
     private record Window(long startMs, long endMs, String label) {}
+
+    public static final long NO_RESET_DAY = Long.MIN_VALUE;
 
     private MeditationStats() {}
 
@@ -88,6 +97,12 @@ public final class MeditationStats {
     }
 
     public static Streak streak(List<MeditationLog> logs, long nowMs, ZoneId zone) {
+        return streak(logs, nowMs, zone, List.of(), NO_RESET_DAY);
+    }
+
+    public static Streak streak(List<MeditationLog> logs, long nowMs, ZoneId zone,
+                                List<VacationWindow> vacationWindows,
+                                long resetEpochDay) {
         LocalDate today = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate();
         TreeSet<LocalDate> meditationDays = new TreeSet<>();
         for (MeditationLog log : logs == null ? List.<MeditationLog>of() : logs) {
@@ -96,15 +111,22 @@ public final class MeditationStats {
                         .atZone(zone).toLocalDate());
             }
         }
+        if (resetEpochDay != NO_RESET_DAY && resetEpochDay <= today.toEpochDay()) {
+            LocalDate resetDay = LocalDate.ofEpochDay(resetEpochDay);
+            meditationDays.removeIf(day -> day.isBefore(resetDay));
+            meditationDays.add(resetDay);
+        }
         if (meditationDays.isEmpty()) {
             return new Streak(0, 0, -1, 0, false);
         }
 
+        List<VacationWindow> safeWindows = vacationWindows == null
+                ? List.of() : vacationWindows;
         int run = 0;
         int best = 0;
         LocalDate previous = null;
         for (LocalDate day : meditationDays) {
-            if (previous == null || ChronoUnit.DAYS.between(previous, day) > 3L) {
+            if (previous == null || effectiveSessionGap(previous, day, safeWindows) > 3L) {
                 run = 1;
             } else {
                 run += 1;
@@ -112,12 +134,62 @@ public final class MeditationStats {
             best = Math.max(best, run);
             previous = day;
         }
-        int daysSince = (int) Math.max(0L, ChronoUnit.DAYS.between(previous, today));
-        boolean todayDone = daysSince == 0;
+        int daysSince = (int) Math.max(0L,
+                effectiveDaysSince(previous, today, safeWindows));
+        boolean todayDone = meditationDays.contains(today);
         if (daysSince > 3) {
             return new Streak(0, best, daysSince, 0, false);
         }
         return new Streak(run, best, daysSince, Math.max(0, 3 - daysSince), todayDone);
+    }
+
+    private static long effectiveSessionGap(LocalDate from, LocalDate to,
+                                            List<VacationWindow> windows) {
+        long raw = Math.max(0L, ChronoUnit.DAYS.between(from, to));
+        return Math.max(0L, raw - bridgedDays(from.toEpochDay() + 1L,
+                to.toEpochDay(), windows));
+    }
+
+    private static long effectiveDaysSince(LocalDate from, LocalDate to,
+                                           List<VacationWindow> windows) {
+        long raw = Math.max(0L, ChronoUnit.DAYS.between(from, to));
+        return Math.max(0L, raw - bridgedDays(from.toEpochDay() + 1L,
+                to.toEpochDay() + 1L, windows));
+    }
+
+    private static long bridgedDays(long startInclusive, long endExclusive,
+                                    List<VacationWindow> windows) {
+        if (endExclusive <= startInclusive) {
+            return 0L;
+        }
+        List<long[]> ranges = new ArrayList<>();
+        for (VacationWindow window : windows) {
+            if (window == null) {
+                continue;
+            }
+            long from = Math.max(startInclusive, window.startEpochDay());
+            long to = Math.min(endExclusive, window.endEpochDayExclusive());
+            if (to > from) {
+                ranges.add(new long[]{from, to});
+            }
+        }
+        ranges.sort(java.util.Comparator.comparingLong(range -> range[0]));
+        long total = 0L;
+        long mergedStart = Long.MIN_VALUE;
+        long mergedEnd = Long.MIN_VALUE;
+        for (long[] range : ranges) {
+            if (mergedStart == Long.MIN_VALUE) {
+                mergedStart = range[0];
+                mergedEnd = range[1];
+            } else if (range[0] <= mergedEnd) {
+                mergedEnd = Math.max(mergedEnd, range[1]);
+            } else {
+                total += mergedEnd - mergedStart;
+                mergedStart = range[0];
+                mergedEnd = range[1];
+            }
+        }
+        return mergedStart == Long.MIN_VALUE ? 0L : total + mergedEnd - mergedStart;
     }
 
     private static List<Window> windows(Range range, long nowMs, ZoneId zone) {

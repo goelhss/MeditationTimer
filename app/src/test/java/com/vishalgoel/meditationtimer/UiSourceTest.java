@@ -50,7 +50,12 @@ public final class UiSourceTest {
         assertTrue(source.contains("Save resolution"));
         assertTrue(source.contains("renderStats"));
         assertTrue(source.contains("StatsChartView"));
-        assertTrue(source.contains("MeditationStats.streak"));
+        assertTrue(source.contains("new StreakStore(this).snapshot"));
+        assertTrue(source.contains("Count meditation streaks"));
+        assertTrue(source.contains("Use streak encouragement in reminders"));
+        assertTrue(source.contains("Pause streak — going on vacation"));
+        assertTrue(source.contains("Streak reset to 1. Good luck this time."));
+        assertTrue(source.contains("Longest streak ever:"));
         assertTrue(source.contains("updateSelectionActions.run()"));
     }
 

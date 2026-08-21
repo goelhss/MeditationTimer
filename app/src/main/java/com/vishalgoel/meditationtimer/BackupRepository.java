@@ -34,7 +34,8 @@ public final class BackupRepository {
                 new MeditationLogStore(context).all(),
                 new ResolutionStore(context).all(),
                 timerSettings,
-                new ReminderStore(context).load());
+                new ReminderStore(context).load(),
+                new StreakStore(context).backupSettings());
     }
 
     public RestoreResult restore(BackupSnapshot incoming) {
@@ -64,6 +65,7 @@ public final class BackupRepository {
                 .apply();
         new ReminderStore(context).save(incoming.reminder());
         new ReminderScheduler(context).apply(incoming.reminder());
+        new StreakStore(context).restoreMerged(incoming.streak());
         new BackupStatusStore(context).markDirty();
         return new RestoreResult(mergedLogs.size() - oldLogs.size(),
                 mergedResolutions.size() - oldResolutions.size());

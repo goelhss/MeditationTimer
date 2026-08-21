@@ -1,3 +1,4 @@
 Choose Quick 5, Regular 30, Weekly 60, or save your own Custom meditation setup.
 Delete selected log entries reliably and restore backups additively without duplicates.
 Explore daily-to-yearly charts, current and best streaks, and streak encouragement.
+Control streak counting and reminder encouragement separately, or pause a streak for vacation.

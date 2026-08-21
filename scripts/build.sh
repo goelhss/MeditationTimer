@@ -27,6 +27,7 @@ run_always() {
         --tests com.vishalgoel.meditationtimer.TimerDisplayModeTest \
         --tests com.vishalgoel.meditationtimer.MeditationPresetTest \
         --tests com.vishalgoel.meditationtimer.MeditationStatsTest \
+        --tests com.vishalgoel.meditationtimer.StreakPolicyTest \
         --tests com.vishalgoel.meditationtimer.ReminderScheduleTest \
         --tests com.vishalgoel.meditationtimer.MeditationLogCodecTest \
         --tests com.vishalgoel.meditationtimer.ResolutionCodecTest \

@@ -211,8 +211,6 @@ public final class MainActivity extends Activity {
         topTabs.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout bottomTabs = new LinearLayout(this);
         bottomTabs.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout finalTabs = new LinearLayout(this);
-        finalTabs.setOrientation(LinearLayout.HORIZONTAL);
         timerTab = tabButton("Timer", TAB_TIMER);
         logsTab = tabButton("Logs", TAB_LOGS);
         statsTab = tabButton("Stats", TAB_STATS);
@@ -223,17 +221,14 @@ public final class MainActivity extends Activity {
         topTabs.addView(timerTab, weighted());
         topTabs.addView(logsTab, weighted());
         topTabs.addView(statsTab, weighted());
-        bottomTabs.addView(resolutionTab, weighted());
+        topTabs.addView(resolutionTab, weighted());
         bottomTabs.addView(reminderTab, weighted());
         bottomTabs.addView(backupTab, weighted());
-        finalTabs.addView(aboutTab, weighted());
+        bottomTabs.addView(aboutTab, weighted());
         tabs.addView(topTabs, matchWrap());
         LinearLayout.LayoutParams bottomTabsParams = matchWrap();
         bottomTabsParams.topMargin = dp(5);
         tabs.addView(bottomTabs, bottomTabsParams);
-        LinearLayout.LayoutParams finalTabsParams = matchWrap();
-        finalTabsParams.topMargin = dp(5);
-        tabs.addView(finalTabs, finalTabsParams);
         root.addView(tabs, matchWrap());
 
         content = new LinearLayout(this);
@@ -243,6 +238,7 @@ public final class MainActivity extends Activity {
         setContentView(root);
         renderSelectedTab();
         showWhatsNewIfNeeded();
+        showStreakNoticeIfNeeded();
     }
 
     private Button tabButton(String label, String tab) {
@@ -592,6 +588,18 @@ public final class MainActivity extends Activity {
         LinearLayout page = pageColumn();
         page.addView(sectionTitle("Meditation Logs"), matchWrap());
         List<MeditationLog> logs = new MeditationLogStore(this).all();
+        StreakStore.Snapshot streak = new StreakStore(this).snapshot(logs,
+                System.currentTimeMillis(), java.time.ZoneId.systemDefault());
+        String streakSummary = streak.countingEnabled()
+                ? "Current streak: " + streak.streak().currentDays()
+                + " days\nLongest streak ever: " + streak.streak().bestDays() + " days"
+                : "Streak counting: Off\nLongest streak previously recorded: "
+                + streak.streak().bestDays() + " days";
+        TextView streakCard = bodyText(streakSummary);
+        streakCard.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        streakCard.setPadding(dp(12), dp(12), dp(12), dp(12));
+        streakCard.setBackground(cardBackground(Color.WHITE));
+        page.addView(streakCard, fullButtonParams());
         Set<String> available = new HashSet<>();
         for (MeditationLog log : logs) {
             available.add(log.id());
@@ -677,11 +685,36 @@ public final class MainActivity extends Activity {
         page.addView(sectionTitle("Meditation Stats"), matchWrap());
         List<MeditationLog> logs = new MeditationLogStore(this).all();
         long now = System.currentTimeMillis();
-        MeditationStats.Streak streak = MeditationStats.streak(
+        StreakStore streakStore = new StreakStore(this);
+        StreakStore.Snapshot streakSnapshot = streakStore.snapshot(
                 logs, now, java.time.ZoneId.systemDefault());
+        MeditationStats.Streak streak = streakSnapshot.streak();
+
+        CheckBox countStreaks = optionCheckBox("Count meditation streaks",
+                streakSnapshot.countingEnabled());
+        countStreaks.setOnCheckedChangeListener((button, checked) -> {
+            streakStore.setCountingEnabled(checked);
+            renderSelectedTab();
+        });
+        page.addView(countStreaks, matchWrap());
+
+        CheckBox streakReminders = optionCheckBox("Use streak encouragement in reminders",
+                streakSnapshot.reminderEnabled());
+        streakReminders.setOnCheckedChangeListener((button, checked) -> {
+            streakStore.setReminderEnabled(checked);
+            Toast.makeText(this, checked ? "Streak encouragement enabled."
+                    : "Streak encouragement disabled. General reminders are unchanged.",
+                    Toast.LENGTH_SHORT).show();
+        });
+        page.addView(streakReminders, matchWrap());
 
         String streakText;
-        if (streak.currentDays() == 0) {
+        if (!streakSnapshot.countingEnabled()) {
+            streakText = "Streak counting is off";
+        } else if (streakSnapshot.paused()) {
+            streakText = "Vacation pause active through "
+                    + formatStreakPauseDate(streakSnapshot.pauseUntilMs());
+        } else if (streak.currentDays() == 0) {
             streakText = "Start your streak today";
         } else if (streak.meditatedToday()) {
             streakText = streak.currentDays() + "-day streak · protected today";
@@ -693,13 +726,41 @@ public final class MainActivity extends Activity {
                     + streak.graceDaysRemaining() + " grace day"
                     + (streak.graceDaysRemaining() == 1 ? "" : "s") + " remaining";
         }
-        TextView streakCard = bodyText(streakText + "\nBest streak: " + streak.bestDays()
-                + " days\n\nOne meditation day increases the tally once. The streak resets after three full days of inactivity.");
+        TextView streakCard = bodyText(streakText + "\nLongest streak ever: "
+                + streak.bestDays() + " days\n\nOne meditation day increases the tally once. "
+                + "The streak resets after three full days of inactivity.");
         streakCard.setTextSize(18);
         streakCard.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         streakCard.setPadding(dp(14), dp(14), dp(14), dp(14));
         streakCard.setBackground(cardBackground(Color.WHITE));
         page.addView(streakCard, fullButtonParams());
+
+        if (streakSnapshot.countingEnabled()) {
+            Button vacation = actionButton(streakSnapshot.paused()
+                    ? "Resume streak now" : "Pause streak — going on vacation", false);
+            vacation.setEnabled(streakSnapshot.paused() || streak.currentDays() > 0);
+            vacation.setOnClickListener(view -> {
+                if (streakSnapshot.paused()) {
+                    streakStore.resumeNow(System.currentTimeMillis(),
+                            java.time.ZoneId.systemDefault());
+                    showStreakNoticeIfNeeded();
+                    renderSelectedTab();
+                } else {
+                    showPauseStreakDialog(streakStore);
+                }
+            });
+            LinearLayout.LayoutParams vacationParams = fullButtonParams();
+            vacationParams.topMargin = dp(10);
+            page.addView(vacation, vacationParams);
+            TextView vacationHelp = bodyText((streak.currentDays() == 0
+                    ? "Start a streak before using vacation pause. " : "")
+                    + "A vacation pause lasts for at most 30 days. "
+                    + "Open Meditation Timer within that time to preserve and resume your streak. "
+                    + "After 30 days, it restarts gently at 1.");
+            vacationHelp.setTextSize(13);
+            vacationHelp.setPadding(0, dp(6), 0, 0);
+            page.addView(vacationHelp, matchWrap());
+        }
 
         TextView encouragement = bodyText("For emotional, spiritual, and long-term well-being:\nGrow old with a healthy soul. Meditate daily.");
         encouragement.setTextColor(Color.rgb(87, 56, 158));
@@ -874,6 +935,14 @@ public final class MainActivity extends Activity {
         enabledParams.topMargin = dp(12);
         page.addView(enabled, enabledParams);
 
+        StreakStore streakStore = new StreakStore(this);
+        CheckBox streakEncouragement = optionCheckBox(
+                "Include streak encouragement in reminders",
+                streakStore.load().reminderEnabled());
+        streakEncouragement.setOnCheckedChangeListener((button, checked) ->
+                streakStore.setReminderEnabled(checked));
+        page.addView(streakEncouragement, matchWrap());
+
         ReminderSchedule.Frequency[] frequencies = ReminderSchedule.Frequency.values();
         List<String> frequencyLabels = new ArrayList<>();
         for (ReminderSchedule.Frequency frequency : frequencies) {
@@ -1003,9 +1072,13 @@ public final class MainActivity extends Activity {
                 }
             }
         }
+        StreakStore.Snapshot streak = new StreakStore(this).snapshot(allLogs,
+                System.currentTimeMillis(), java.time.ZoneId.systemDefault());
         String timestamp = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(new Date());
         shareTextFile("meditation-logs-" + timestamp + ".txt",
-                LogTextExporter.export(selected), "Share Meditation Logs");
+                LogTextExporter.export(selected, streak.countingEnabled(),
+                        streak.streak().currentDays(), streak.streak().bestDays()),
+                "Share Meditation Logs");
     }
 
     private void confirmDeleteSelected() {
@@ -1040,7 +1113,7 @@ public final class MainActivity extends Activity {
         BackupStatusStore status = new BackupStatusStore(this);
         LinearLayout page = pageColumn();
         page.addView(sectionTitle("Backup & Restore"), matchWrap());
-        page.addView(bodyText("Save meditation logs, resolutions, timer settings, and reminders. Active timers and diagnostics are never included."),
+        page.addView(bodyText("Save meditation logs, resolutions, timer settings, reminders, and streak preferences/history. Active timers and diagnostics are never included."),
                 matchWrap());
 
         page.addView(subsectionTitle("Private Google Drive backup"), matchWrap());
@@ -1282,7 +1355,7 @@ public final class MainActivity extends Activity {
                 .setMessage("Backup date: " + created
                         + "\nMeditation logs: " + snapshot.logs().size()
                         + "\nResolutions: " + snapshot.resolutions().size()
-                        + "\n\nLogs and resolutions will be merged without duplicates. Timer settings and reminders will be replaced.")
+                        + "\n\nLogs and resolutions will be merged without duplicates. Timer, reminder, and streak preferences will be replaced; the greater longest-ever streak is kept.")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Restore", (dialog, which) -> {
                     BackupRepository.RestoreResult result =
@@ -1406,7 +1479,7 @@ public final class MainActivity extends Activity {
 
         page.addView(subsectionTitle("Version history"), matchWrap());
         page.addView(bodyText("1.7.0 · August 21, 2026\n"
-                + "Session presets and saved Custom configuration, working individual log deletion, additive deduplicated restore, meditation charts, streak tracking, and streak encouragement.\n\n"
+                + "Session presets and saved Custom configuration, working individual log deletion, additive deduplicated restore, meditation charts, optional streak controls, persistent longest-ever history, and a 30-day vacation pause.\n\n"
                 + "1.6.0 · August 21, 2026\n"
                 + "Private Google Drive backup, portable JSON export/import, restore safeguards, and explicit backup deletion.\n\n"
                 + "1.5.0 · August 21, 2026\n"
@@ -1443,9 +1516,47 @@ public final class MainActivity extends Activity {
                         + "• Individual meditation-log deletion fixed\n"
                         + "• Additive restore with content duplicate protection\n"
                         + "• Daily through yearly charts in the new Stats tab\n"
-                        + "• Streak tracking with a three-day inactivity grace period")
+                        + "• Optional streak counting and reminder encouragement\n"
+                        + "• Longest-ever history and a respectful 30-day vacation pause")
                 .setPositiveButton("Continue", null)
                 .show();
+    }
+
+    private void showPauseStreakDialog(StreakStore streakStore) {
+        new AlertDialog.Builder(this)
+                .setTitle("Pause your streak for vacation?")
+                .setMessage("Your current streak will be protected for up to 30 days. "
+                        + "Opening Meditation Timer again within 30 days resumes it. "
+                        + "If you return later, the app gently restarts the streak at 1.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Pause for vacation", (dialog, which) -> {
+                    streakStore.pause(System.currentTimeMillis(),
+                            java.time.ZoneId.systemDefault());
+                    Toast.makeText(this, "Vacation pause started.", Toast.LENGTH_SHORT).show();
+                    renderSelectedTab();
+                })
+                .show();
+    }
+
+    private String formatStreakPauseDate(long wallMs) {
+        return new SimpleDateFormat("MMM d, yyyy", Locale.US).format(new Date(wallMs));
+    }
+
+    private void showStreakNoticeIfNeeded() {
+        if (!mainUiShown) {
+            return;
+        }
+        String notice = new StreakStore(this).consumeNotice();
+        if (StreakStore.NOTICE_RESET.equals(notice)) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Welcome back")
+                    .setMessage("Streak reset to 1. Good luck this time.")
+                    .setPositiveButton("Thank you", null)
+                    .show();
+        } else if (StreakStore.NOTICE_RESUMED.equals(notice)) {
+            Toast.makeText(this, "Welcome back — your streak is active again.",
+                    Toast.LENGTH_LONG).show();
+        }
     }
 
     private void showLicense() {
@@ -2112,6 +2223,14 @@ public final class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        StreakStore streakStore = new StreakStore(this);
+        boolean pauseFinished = streakStore.onAppOpened(System.currentTimeMillis(),
+                java.time.ZoneId.systemDefault());
+        if (pauseFinished && mainUiShown
+                && (TAB_STATS.equals(selectedTab) || TAB_LOGS.equals(selectedTab))) {
+            renderSelectedTab();
+        }
+        showStreakNoticeIfNeeded();
         handler.removeCallbacks(uiTicker);
         handler.post(uiTicker);
         maybeRunAutomaticBackup();

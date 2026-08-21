@@ -22,12 +22,14 @@ public final class AppPolicySourceTest {
         String manifest = TestSources.read("app/src/main/AndroidManifest.xml");
 
         assertTrue(manifest.contains("android.permission.FOREGROUND_SERVICE"));
-        assertTrue(manifest.contains("android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"));
+        assertTrue(manifest.contains("android.permission.FOREGROUND_SERVICE_SPECIAL_USE"));
         assertTrue(manifest.contains("android.permission.SCHEDULE_EXACT_ALARM"));
         assertTrue(manifest.contains("android.permission.RECEIVE_BOOT_COMPLETED"));
         assertTrue(manifest.contains("android.permission.VIBRATE"));
         assertTrue(manifest.contains("android.permission.WAKE_LOCK"));
-        assertTrue(manifest.contains("android:foregroundServiceType=\"mediaPlayback\""));
+        assertTrue(manifest.contains("android:foregroundServiceType=\"specialUse\""));
+        assertTrue(manifest.contains("android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"));
+        assertTrue(manifest.contains("User-started meditation countdown"));
         assertTrue(manifest.contains("android:stopWithTask=\"false\""));
         assertTrue(manifest.contains(".LogShareProvider"));
         assertTrue(manifest.contains(".ReminderReceiver"));

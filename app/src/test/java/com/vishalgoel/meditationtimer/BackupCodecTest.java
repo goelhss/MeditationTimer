@@ -25,8 +25,10 @@ public final class BackupCodecTest {
         assertEquals(original.reminder().hour(), decoded.reminder().hour());
         assertEquals(original.reminder().minute(), decoded.reminder().minute());
         assertEquals(original.reminder().customDaysMask(), decoded.reminder().customDaysMask());
+        assertEquals(original.streak(), decoded.streak());
         assertTrue(json.contains("com.vishalgoel.meditationtimer"));
         assertTrue(json.contains("customConfiguration"));
+        assertTrue(json.contains("vacationWindows"));
     }
 
     @Test
@@ -60,6 +62,18 @@ public final class BackupCodecTest {
         assertEquals(60, decoded.settings().customConfiguration().durationMinutes());
     }
 
+    @Test
+    public void olderBackupWithoutStreakSettingsUsesRespectfulDefaults() throws Exception {
+        org.json.JSONObject oldBackup = new org.json.JSONObject(BackupCodec.encode(sample()));
+        oldBackup.remove("streak");
+
+        BackupSnapshot decoded = BackupCodec.decode(oldBackup.toString());
+
+        assertTrue(decoded.streak().countingEnabled());
+        assertTrue(decoded.streak().reminderEnabled());
+        assertEquals(0, decoded.streak().longestEver());
+    }
+
     private static BackupSnapshot sample() {
         return new BackupSnapshot(123_456L,
                 List.of(new MeditationLog("log-1", 100L, 200L, 100L)),
@@ -70,6 +84,9 @@ public final class BackupCodecTest {
                         true, MeditationPreset.REGULAR_30.resolve(null),
                         MeditationPreset.CUSTOM.id()),
                 new ReminderSchedule(true, ReminderSchedule.Frequency.WEEKDAYS,
-                        8, 30, ReminderSchedule.WEEKDAYS_MASK));
+                        8, 30, ReminderSchedule.WEEKDAYS_MASK),
+                new StreakSettings(true, false, false, 0L, 0L,
+                        List.of(new MeditationStats.VacationWindow(20_000L, 20_010L)),
+                        MeditationStats.NO_RESET_DAY, 12));
     }
 }

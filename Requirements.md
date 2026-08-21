@@ -28,7 +28,7 @@
 - Background color is persistent and configurable as Dark Purple (default), Dark Blue, Dark Gray, or Black while preserving readable high-contrast controls.
 - Start shows a large countdown on the same screen.
 - Pause, Resume, Restart, and End are available.
-- A user-started running session must continue accurately through screen locking, activity backgrounding, task dismissal, and ordinary Android process/service recreation. Use a user-visible foreground service with the correct service type, a carefully scoped partial wake lock, elapsed-real-time calculations, persisted idempotent state, and alarm recovery; release every background resource immediately on Pause/End/completion as appropriate.
+- A user-started running session must continue accurately through screen locking, activity backgrounding, task dismissal, and ordinary Android process/service recreation. Use a user-visible `specialUse` foreground service truthfully declared as a user-started meditation countdown with timed chime/vibration cues, a carefully scoped partial wake lock, elapsed-real-time calculations, persisted idempotent state, and alarm recovery; release every background resource immediately on Pause/End/completion as appropriate.
 - The ongoing notification must show timer status and provide Pause/Resume and End actions while the visible activity is unavailable.
 - The app never forces its activity over the lock screen.
 - Background-continuity tests must cover Home/background, manual screen lock, task dismissal, process recreation, notification actions, permission denial, completion while locked, and cleanup after End.
@@ -50,6 +50,7 @@
 - Deliver a local notification even when the app is not open; tapping it opens the Timer tab.
 - Recreate an enabled reminder after device restart, clock change, or time-zone change.
 - Enabled reminders encourage the user to maintain the current streak for emotional, spiritual, and long-term well-being with the message “Grow old with a healthy soul. Meditate daily.”
+- Streak encouragement is independently switchable. Turning it off keeps the user's ordinary meditation reminder schedule and uses neutral reminder text without a streak count.
 
 ## Meditation Logs tab
 
@@ -58,30 +59,35 @@
 - Paused time is excluded.
 - Support selecting one, multiple, or all entries and confirmed deletion.
 - Share logs as a generated UTF-8 text file through Android's chooser, including Drive and Gmail when installed.
+- Show and export Current streak versus Longest streak ever. Preserve the historical maximum even if older logs are deleted.
 
 ## Stats tab
 
 - Show total meditation time, session count, and distinct meditation days with a bar chart selectable as Daily, Weekly, Monthly, 3 months, 6 months, or Full year.
 - Derive streaks from logs, counting at most one increase per local calendar day regardless of session count.
 - Preserve an active streak through three full days of inactivity and reset it on the following day if no meditation was logged; show the current and best streak.
+- Let the user disable streak counting independently of reminders, disable streak encouragement independently of counting, or disable both.
+- Let a user with an active streak choose “Pause streak — going on vacation.” Protect the streak for at most 30 days. Opening the app within the window resumes it; opening after the deadline restarts it at 1 and shows the nonjudgmental message “Streak reset to 1. Good luck this time.”
+- Vacation pauses never create, remove, or alter meditation-log entries. Persist bounded pause metadata and the longest-ever value locally and in authorized backup paths.
 
 ## About tab
 
 - Show app/version/build, author, MIT license, changelog/version history, timer/reminder permission status, and compact diagnostics.
 - Show What's New once for each installed version.
+- Keep the MIT license available in About and the source repository. Do not require first-launch acceptance because MIT licenses distribution/source use rather than acting as an end-user agreement.
 
 ## Google backup and restore
 
 - Provide a true in-app connection to a user-selected Google account as the primary backup path; Android's document/file picker alone is not an acceptable substitute.
 - Use Google authorization and the least-privileged Google Drive application-data scope to save and restore Meditation Timer data.
-- Back up meditation logs, resolutions, and user settings without exposing signing material, diagnostics, or active/pending timer state.
+- Back up meditation logs, resolutions, timer/reminder settings, streak preferences, longest-streak history, and bounded vacation-pause metadata without exposing signing material, diagnostics, or active/pending timer state.
 - Provide an explicit Disconnect action that revokes the app's Google authorization.
 - Also offer portable JSON export/import through Android's document picker, including user-visible Google Drive or local storage, as a secondary manual backup path.
 - Retain Android Auto Backup for encrypted install/device restoration, with explicit include/exclude rules; do not present it as a replacement for on-demand Google Drive backup/restore.
 - Keep exactly one hidden backup named `meditation-timer-backup.json` in Drive's `appDataFolder`, replace it on later backups, remove accidental duplicates, and reject backups larger than 1 MB.
 - Automatic backup defaults on and runs opportunistically while the app is open after durable data/settings change. It never requests an offline refresh token or a server-side account credential.
 - On connect/reconnect, discover an existing cloud backup and require a restore/decline decision before automatic upload can overwrite it.
-- Restore adds logs and resolutions to existing local history without deleting local entries, keeps local data on an ID collision, and also suppresses content-identical duplicates with different IDs; it replaces timer/reminder and saved Custom settings only after confirmation and reapplies the restored reminder schedule.
+- Restore adds logs and resolutions to existing local history without deleting local entries, keeps local data on an ID collision, and also suppresses content-identical duplicates with different IDs; it replaces timer/reminder, saved Custom, and streak preference settings only after confirmation, keeps the greater longest-ever value, merges bounded vacation history, and reapplies the restored reminder schedule.
 - Provide explicit Backup now, Restore, Delete Google Drive backup, and Disconnect controls. Deleting the cloud backup also turns automatic backup off so it is not silently recreated.
 - Portable files use versioned JSON and validate app ID, schema version, field types, and the 1 MB limit before restore; warn users that portable files are readable by anyone with file access.
 - Never persist Google access tokens, passwords, signing data, active/pending timer state, diagnostics, caches, or device-specific identifiers in any backup.

@@ -27,6 +27,12 @@ public final class StatsChartView extends View {
 
     public void setBuckets(List<MeditationStats.Bucket> buckets) {
         this.buckets = buckets == null ? List.of() : List.copyOf(buckets);
+        StringBuilder description = new StringBuilder("Meditation time chart");
+        for (MeditationStats.Bucket bucket : this.buckets) {
+            description.append(", ").append(bucket.label()).append(' ')
+                    .append(LogTextExporter.formatDuration(bucket.durationMs()));
+        }
+        setContentDescription(description.toString());
         invalidate();
     }
 

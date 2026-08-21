@@ -6,7 +6,10 @@
 - Added Quick 5 minute, Regular 30 minute, A good weekly 60 minute, and saved Custom configurations, including cue sound and display choices.
 - Strengthened restore to preserve existing logs/resolutions and reject content-identical duplicates even when IDs differ.
 - Added a Stats tab with Daily, Weekly, Monthly, 3 months, 6 months, and Full year charts.
-- Added once-per-meditation-day streak tracking with a three-full-day inactivity grace period and motivational reminder text.
+- Added once-per-meditation-day streak tracking with a three-full-day inactivity grace period, separately switchable counting and reminder encouragement, and a persistent longest-ever tally.
+- Added a respectful 30-day vacation pause. Returning within 30 days preserves the streak; a later return gently restarts it at 1.
+- Included streak preferences, longest history, and vacation bridges in private/portable backups and encrypted Android restore.
+- Corrected the foreground-service declaration from media playback to a truthfully described user-started meditation countdown special use.
 
 ## 1.6.0 - 2026-08-21
 

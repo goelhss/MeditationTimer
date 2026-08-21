@@ -2,7 +2,7 @@
 
 A calm Android phone timer with digital/analog countdowns, preparation time, live-switchable chimes, vibration and dimming, reliable screen-locked operation, configurable local reminders, session logs, resolutions, and text-file sharing.
 
-Version 1.7.0 adds session presets and saved Custom configurations, corrected individual log deletion, additive deduplicated restore, daily-to-yearly statistics charts, and meditation streak encouragement.
+Version 1.7.0 adds session presets and saved Custom configurations, corrected individual log deletion, additive deduplicated restore, daily-to-yearly charts, optional streak counting/encouragement, and a 30-day vacation pause.
 
 ## Build
 

@@ -9,9 +9,22 @@ public final class LogTextExporter {
     private LogTextExporter() {}
 
     public static String export(List<MeditationLog> logs) {
+        return export(logs, false, 0, 0);
+    }
+
+    public static String export(List<MeditationLog> logs, boolean streakCountingEnabled,
+                                int currentStreak, int longestStreak) {
         StringBuilder text = new StringBuilder();
         text.append("Meditation Timer Logs\n");
         text.append("=====================\n\n");
+        if (streakCountingEnabled) {
+            text.append("Current streak: ").append(currentStreak).append(" days\n");
+            text.append("Longest streak ever: ").append(longestStreak).append(" days\n\n");
+        } else if (longestStreak > 0) {
+            text.append("Streak counting: Off\n");
+            text.append("Longest streak previously recorded: ").append(longestStreak)
+                    .append(" days\n\n");
+        }
         if (logs.isEmpty()) {
             text.append("No meditation sessions logged.\n");
             return text.toString();

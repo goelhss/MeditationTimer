@@ -22,4 +22,12 @@ public final class LogTextExporterTest {
         assertEquals("0:00", LogTextExporter.formatDuration(999L));
         assertEquals("5:07", LogTextExporter.formatDuration(307_000L));
     }
+
+    @Test
+    public void exportIncludesCurrentAndLongestStreak() {
+        String text = LogTextExporter.export(List.of(), true, 4, 19);
+
+        assertTrue(text.contains("Current streak: 4 days"));
+        assertTrue(text.contains("Longest streak ever: 19 days"));
+    }
 }
