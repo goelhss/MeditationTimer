@@ -2,6 +2,21 @@
 
 Newest entries go first. Build, test, GitHub, artifact checksum/size, Play upload, and Telegram results are recorded here without secrets.
 
+## 2026-08-21 · 1.5.0 (versionCode 5) · preparation, resolutions, and completion release
+
+- Clean release source commit: `c56f519` (`Add preparation and meditation resolutions`).
+- Always-required and full JVM/source-policy suites: 39 app tests passed, 0 failed; shared-module tests also passed.
+- Android lint: passed with 0 errors and 0 warnings.
+- Signed AAB: `release/MeditationTimer-1.5.0-v5-release.aab`.
+- Size: 62,745 bytes.
+- SHA-256: `9bfed5e03ba0855bcc99155e5479794fb86c3a0586e54a9bc24950cdb0660875`.
+- Signature verification: passed during the clean release build.
+- Physical-phone smoke test: pending; preparation/background behavior, the new bowl, visible countdown, completion lotus, and Resolution tab should be confirmed on the tester's phone.
+- GitHub: pushed `main` through `c56f519` and annotated tag `meditation-timer-1.5.0-v5` to `https://github.com/goelhss/MeditationTimer`.
+- Google Play: version `5 (1.5.0)` published to internal testing and verified as **Available to internal testers** on 2026-08-21.
+- Play validation: 11,264 phones remain supported; the only warning was the expected missing deobfuscation file while code obfuscation is disabled.
+- Telegram `google-console-upload` success notification: pending explicit approval because the standard payload transmits the local artifact path and bundle hash to Telegram.
+
 ## 2026-08-18 · 1.4.0 (versionCode 4) · live meditation controls release
 
 - Clean release source commit: `95678e4` (`Add live screen dim control`).

@@ -2,10 +2,13 @@
 
 ## In progress
 
+- 2026-08-21: Design true in-app Google account authorization and Drive backup/restore for logs, resolutions, and settings, plus secondary portable file export/import and explicit Android Auto Backup rules.
 - 2026-08-18: Run the first physical-phone smoke test from the Google Play internal-testing install.
 
 ## Done
 
+- 2026-08-21: Added Meditation Bowl, background-safe preparation time, seconds-visible elapsed/remaining time, the dismissible purple-lotus “Well done.” prompt, and the Resolution tab.
+- 2026-08-21: Tested, signed, tagged, pushed, and published Meditation Timer `5 (1.5.0)` to internal testing; Play reports it available.
 - 2026-08-18: Added live Chimes, Vibrate, and Dim controls to the running meditation screen; changes apply without pausing or restarting, and both cue modes may be turned off for silence.
 - 2026-08-18: Tested, signed, tagged, pushed, and published Meditation Timer `4 (1.4.0)` to internal testing; Play reports it available and Telegram notification was sent.
 - 2026-08-18: Added Temple Bell, Singing Bowl, Crystal Chime, and Classic Ding selection with louder alarm-volume playback and reverberating tails.

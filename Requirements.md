@@ -60,6 +60,16 @@
 - Show app/version/build, author, MIT license, changelog/version history, timer/reminder permission status, and compact diagnostics.
 - Show What's New once for each installed version.
 
+## Google backup and restore
+
+- Provide a true in-app connection to a user-selected Google account as the primary backup path; Android's document/file picker alone is not an acceptable substitute.
+- Use Google authorization and the least-privileged Google Drive application-data scope to save and restore Meditation Timer data.
+- Back up meditation logs, resolutions, and user settings without exposing signing material, diagnostics, or active/pending timer state.
+- Provide an explicit Disconnect action that revokes the app's Google authorization.
+- Also offer portable JSON export/import through Android's document picker, including user-visible Google Drive or local storage, as a secondary manual backup path.
+- Retain Android Auto Backup for encrypted install/device restoration, with explicit include/exclude rules; do not present it as a replacement for on-demand Google Drive backup/restore.
+- Finalize backup frequency, restore merge/replace behavior, and conflict handling before implementation.
+
 ## Delivery
 
 - Unit tests must run before release build or push.
