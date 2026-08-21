@@ -64,4 +64,15 @@ public final class AppPolicySourceTest {
         assertTrue(publish.contains("UPLOAD_NO_COMMIT=0"));
         assertFalse(publish.contains("--track"));
     }
+
+    @Test
+    public void publicPrivacyPageMatchesBackupAndPermissionPolicy() throws IOException {
+        String privacy = TestSources.read("docs/privacy/index.html");
+
+        assertTrue(privacy.contains("application-data scope"));
+        assertTrue(privacy.contains("capped at 1 MB"));
+        assertTrue(privacy.contains("does not sell personal information"));
+        assertTrue(privacy.contains("does not request location, contacts, camera, or microphone"));
+        assertTrue(privacy.contains("delete it from Google Drive"));
+    }
 }

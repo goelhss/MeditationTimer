@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="title description">
+  <title id="title">Meditation Timer purple lotus</title>
+  <desc id="description">An original symmetrical purple lotus used by Meditation Timer.</desc>
+  <path fill="#F6C6FF" d="M120 166C88 132 87 72 120 20c33 52 32 112 0 146Z"/>
+  <path fill="#D891FF" d="M111 166c-42-15-72-58-64-109 42 17 69 61 64 109Z"/>
+  <path fill="#D891FF" d="M129 166c42-15 72-58 64-109-42 17-69 61-64 109Z"/>
+  <path fill="#AD5CE6" d="M100 169c-42 3-77-21-87-60 42-4 78 20 87 60Z"/>
+  <path fill="#AD5CE6" d="M140 169c42 3 77-21 87-60-42-4-78 20-87 60Z"/>
+  <path fill="#FFF0FF" fill-opacity=".58" d="M120 169c-25-19-37-55-25-88 25 22 34 57 25 88Z"/>
+  <path fill="#FFF0FF" fill-opacity=".58" d="M120 169c25-19 37-55 25-88-25 22-34 57-25 88Z"/>
+  <path fill="#B968F4" d="M35 166c28 12 55 17 85 17s57-5 85-17c-21 25-49 37-85 37s-64-12-85-37Z"/>
+</svg>
