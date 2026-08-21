@@ -31,7 +31,9 @@ public final class AppPolicySourceTest {
         assertTrue(manifest.contains("android:stopWithTask=\"false\""));
         assertTrue(manifest.contains(".LogShareProvider"));
         assertTrue(manifest.contains(".ReminderReceiver"));
-        assertFalse(manifest.contains("android.permission.INTERNET"));
+        assertTrue(manifest.contains("android.permission.INTERNET"));
+        assertTrue(manifest.contains("android:dataExtractionRules="));
+        assertTrue(manifest.contains("android:fullBackupContent="));
     }
 
     @Test

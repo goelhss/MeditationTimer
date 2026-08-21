@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.0 - 2026-08-21
+
+- Added true in-app Google authorization with the least-privilege Drive application-data scope.
+- Added one private, hidden Google Drive backup for meditation logs, resolutions, timer settings, and reminder settings, capped at 1 MB.
+- Added automatic backup with cloud-discovery and restore-before-upload protection.
+- Added confirmed restore with history merging, settings replacement, and reminder rescheduling.
+- Added portable JSON export/import, explicit cloud-backup deletion, authorization revocation, and encrypted Android device-backup rules.
+
 ## 1.5.0 - 2026-08-21
 
 - Added a spacious Meditation Bowl sound candidate.

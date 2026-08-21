@@ -1,6 +1,7 @@
 package com.vishalgoel.meditationtimer;
 
 import android.Manifest;
+import android.accounts.Account;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlarmManager;
@@ -14,6 +15,7 @@ import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.IntentSender;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -42,9 +44,20 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.auth.api.identity.AuthorizationClient;
+import com.google.android.gms.auth.api.identity.AuthorizationRequest;
+import com.google.android.gms.auth.api.identity.AuthorizationResult;
+import com.google.android.gms.auth.api.identity.Identity;
+import com.google.android.gms.auth.api.identity.RevokeAccessRequest;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.Scope;
+
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -55,6 +68,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @SuppressLint("SetTextI18n")
 public final class MainActivity extends Activity {
@@ -63,12 +78,21 @@ public final class MainActivity extends Activity {
     private static final String TAB_LOGS = "logs";
     private static final String TAB_RESOLUTION = "resolution";
     private static final String TAB_REMINDER = "reminder";
+    private static final String TAB_BACKUP = "backup";
     private static final String TAB_ABOUT = "about";
     private static final String SETTINGS_PREFS = "timer_settings";
     private static final int NOTIFICATION_PERMISSION_REQUEST = 401;
+    private static final int GOOGLE_AUTH_REQUEST = 402;
+    private static final int BACKUP_EXPORT_REQUEST = 403;
+    private static final int BACKUP_IMPORT_REQUEST = 404;
     private static final float DIM_BRIGHTNESS = 0.08f;
+    private static final Scope DRIVE_APPDATA_SCOPE = new Scope(
+            "https://www.googleapis.com/auth/drive.appdata");
+
+    private enum GoogleAction { CONNECT, BACKUP, RESTORE, DELETE, DISCONNECT, AUTO_BACKUP }
 
     private final Handler handler = new Handler(Looper.getMainLooper());
+    private final ExecutorService backupExecutor = Executors.newSingleThreadExecutor();
     private final Set<String> selectedLogIds = new HashSet<>();
     private LinearLayout root;
     private LinearLayout content;
@@ -76,6 +100,7 @@ public final class MainActivity extends Activity {
     private Button logsTab;
     private Button resolutionTab;
     private Button reminderTab;
+    private Button backupTab;
     private Button aboutTab;
     private TextView countdownView;
     private AnalogTimerView analogTimerView;
@@ -90,6 +115,8 @@ public final class MainActivity extends Activity {
     private String dismissedPendingDialogId = "";
     private TextView pendingMessageView;
     private ToneDingPlayer previewPlayer;
+    private GoogleAction pendingGoogleAction;
+    private boolean backupOperationRunning;
 
     private final BroadcastReceiver stateReceiver = new BroadcastReceiver() {
         @Override
@@ -154,7 +181,7 @@ public final class MainActivity extends Activity {
         String requested = intent.getStringExtra(EXTRA_OPEN_TAB);
         if (TAB_TIMER.equals(requested) || TAB_LOGS.equals(requested)
                 || TAB_RESOLUTION.equals(requested) || TAB_REMINDER.equals(requested)
-                || TAB_ABOUT.equals(requested)) {
+                || TAB_BACKUP.equals(requested) || TAB_ABOUT.equals(requested)) {
             selectedTab = requested;
         }
     }
@@ -185,11 +212,13 @@ public final class MainActivity extends Activity {
         logsTab = tabButton("Logs", TAB_LOGS);
         resolutionTab = tabButton("Resolution", TAB_RESOLUTION);
         reminderTab = tabButton("Reminder", TAB_REMINDER);
+        backupTab = tabButton("Backup", TAB_BACKUP);
         aboutTab = tabButton("About", TAB_ABOUT);
         topTabs.addView(timerTab, weighted());
         topTabs.addView(logsTab, weighted());
         topTabs.addView(resolutionTab, weighted());
         bottomTabs.addView(reminderTab, weighted());
+        bottomTabs.addView(backupTab, weighted());
         bottomTabs.addView(aboutTab, weighted());
         tabs.addView(topTabs, matchWrap());
         LinearLayout.LayoutParams bottomTabsParams = matchWrap();
@@ -235,6 +264,8 @@ public final class MainActivity extends Activity {
             renderResolution();
         } else if (TAB_REMINDER.equals(selectedTab)) {
             renderReminder();
+        } else if (TAB_BACKUP.equals(selectedTab)) {
+            renderBackup();
         } else if (TAB_ABOUT.equals(selectedTab)) {
             renderAbout();
         } else {
@@ -247,6 +278,7 @@ public final class MainActivity extends Activity {
         styleTab(logsTab, TAB_LOGS.equals(selectedTab));
         styleTab(resolutionTab, TAB_RESOLUTION.equals(selectedTab));
         styleTab(reminderTab, TAB_REMINDER.equals(selectedTab));
+        styleTab(backupTab, TAB_BACKUP.equals(selectedTab));
         styleTab(aboutTab, TAB_ABOUT.equals(selectedTab));
     }
 
@@ -351,6 +383,7 @@ public final class MainActivity extends Activity {
                                 ((TimerDisplayMode) timerDisplay.getSelectedItem()).id())
                         .putBoolean("dim", dim.isChecked())
                         .apply();
+                new BackupStatusStore(this).markDirty();
                 requestNotificationPermissionIfNeeded();
                 Intent service = new Intent(this, MeditationTimerService.class)
                         .setAction(MeditationTimerService.ACTION_START)
@@ -849,6 +882,313 @@ public final class MainActivity extends Activity {
                 }).show();
     }
 
+    private void renderBackup() {
+        restoreScreenMode();
+        BackupStatusStore status = new BackupStatusStore(this);
+        LinearLayout page = pageColumn();
+        page.addView(sectionTitle("Backup & Restore"), matchWrap());
+        page.addView(bodyText("Save meditation logs, resolutions, timer settings, and reminders. Active timers and diagnostics are never included."),
+                matchWrap());
+
+        page.addView(subsectionTitle("Private Google Drive backup"), matchWrap());
+        String connection = status.isGoogleConnected()
+                ? "Connected to Google Drive" : "Not connected";
+        String lastBackup = status.lastSuccessMs() > 0L
+                ? formatBackupTime(status.lastSuccessMs()) : "Never";
+        String error = status.lastError();
+        page.addView(bodyText(connection + "\nLast successful backup: " + lastBackup
+                + (status.isRestoreDecisionRequired()
+                        ? "\nA Drive backup is waiting for your restore decision." : "")
+                + (error == null || error.isBlank() ? "" : "\nLast issue: " + error)), matchWrap());
+
+        CheckBox automatic = optionCheckBox("Back up automatically when the app is open",
+                status.isAutoBackupEnabled());
+        automatic.setOnCheckedChangeListener((button, checked) -> {
+            status.setAutoBackupEnabled(checked);
+            if (checked) {
+                maybeRunAutomaticBackup();
+            }
+        });
+        page.addView(automatic, matchWrap());
+        page.addView(bodyText("Google receives one private app-data JSON file, capped at 1 MB. Its location and filename are managed automatically; you never need to choose a Drive folder. Each backup replaces the previous one."),
+                matchWrap());
+
+        Button connect = actionButton(status.isGoogleConnected()
+                ? "Reconnect or change Google account" : "Connect Google Drive", true);
+        connect.setEnabled(!backupOperationRunning);
+        connect.setOnClickListener(view -> authorizeGoogle(GoogleAction.CONNECT));
+        LinearLayout.LayoutParams connectParams = fullButtonParams();
+        connectParams.topMargin = dp(12);
+        page.addView(connect, connectParams);
+
+        LinearLayout googleActions = new LinearLayout(this);
+        googleActions.setOrientation(LinearLayout.HORIZONTAL);
+        Button backupNow = actionButton("Backup now", false);
+        backupNow.setEnabled(status.isGoogleConnected() && !backupOperationRunning);
+        backupNow.setOnClickListener(view -> authorizeGoogle(GoogleAction.BACKUP));
+        Button restore = actionButton("Restore", false);
+        restore.setEnabled(status.isGoogleConnected() && !backupOperationRunning);
+        restore.setOnClickListener(view -> authorizeGoogle(GoogleAction.RESTORE));
+        googleActions.addView(backupNow, weighted());
+        googleActions.addView(restore, weighted());
+        LinearLayout.LayoutParams googleParams = matchWrap();
+        googleParams.topMargin = dp(8);
+        page.addView(googleActions, googleParams);
+
+        Button disconnect = actionButton("Disconnect Google Drive", false);
+        disconnect.setEnabled(status.isGoogleConnected() && !backupOperationRunning);
+        disconnect.setOnClickListener(view -> new AlertDialog.Builder(this)
+                .setTitle("Disconnect Google Drive?")
+                .setMessage("Meditation Timer will revoke its private Drive permission. Existing backup data remains in your Google account until you remove the app data in Drive settings.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Disconnect", (dialog, which) ->
+                        authorizeGoogle(GoogleAction.DISCONNECT))
+                .show());
+        LinearLayout.LayoutParams disconnectParams = fullButtonParams();
+        disconnectParams.topMargin = dp(8);
+        page.addView(disconnect, disconnectParams);
+
+        Button deleteCloud = actionButton("Delete Google Drive backup", false);
+        deleteCloud.setTextColor(Color.rgb(179, 38, 30));
+        deleteCloud.setEnabled(status.isGoogleConnected() && !backupOperationRunning);
+        deleteCloud.setOnClickListener(view -> new AlertDialog.Builder(this)
+                .setTitle("Delete Google Drive backup?")
+                .setMessage("This permanently deletes Meditation Timer's private backup from Google Drive and turns automatic backup off. Data currently on this phone is not deleted.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Delete backup", (dialog, which) ->
+                        authorizeGoogle(GoogleAction.DELETE))
+                .show());
+        LinearLayout.LayoutParams deleteCloudParams = fullButtonParams();
+        deleteCloudParams.topMargin = dp(8);
+        page.addView(deleteCloud, deleteCloudParams);
+
+        page.addView(subsectionTitle("Portable JSON file"), matchWrap());
+        page.addView(bodyText("Export creates a readable file in a location you choose. Anyone who can access that file can read its meditation history and resolutions."),
+                matchWrap());
+        LinearLayout fileActions = new LinearLayout(this);
+        fileActions.setOrientation(LinearLayout.HORIZONTAL);
+        Button export = actionButton("Export file", false);
+        export.setOnClickListener(view -> startBackupExport());
+        Button importFile = actionButton("Import file", false);
+        importFile.setOnClickListener(view -> startBackupImport());
+        fileActions.addView(export, weighted());
+        fileActions.addView(importFile, weighted());
+        LinearLayout.LayoutParams fileParams = matchWrap();
+        fileParams.topMargin = dp(8);
+        page.addView(fileActions, fileParams);
+        content.addView(scroll(page), fill());
+    }
+
+    private void startBackupExport() {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE)
+                .setType("application/json")
+                .putExtra(Intent.EXTRA_TITLE, "meditation-timer-backup-"
+                        + new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(new Date())
+                        + ".json");
+        startActivityForResult(intent, BACKUP_EXPORT_REQUEST);
+    }
+
+    private void startBackupImport() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE)
+                .setType("application/json");
+        startActivityForResult(intent, BACKUP_IMPORT_REQUEST);
+    }
+
+    private void authorizeGoogle(GoogleAction action) {
+        if (backupOperationRunning) {
+            return;
+        }
+        backupOperationRunning = true;
+        pendingGoogleAction = action;
+        AuthorizationRequest.Builder request = AuthorizationRequest.builder()
+                .setRequestedScopes(List.of(DRIVE_APPDATA_SCOPE));
+        if (action == GoogleAction.CONNECT) {
+            request.setPrompt(AuthorizationRequest.Prompt.SELECT_ACCOUNT);
+        }
+        Identity.getAuthorizationClient(this).authorize(request.build())
+                .addOnSuccessListener(result -> {
+                    if (result.hasResolution()) {
+                        if (action == GoogleAction.AUTO_BACKUP) {
+                            new BackupStatusStore(this).recordError(
+                                    "Reconnect Google Drive to resume automatic backup.");
+                            finishBackupOperation(false);
+                            return;
+                        }
+                        try {
+                            startIntentSenderForResult(result.getPendingIntent().getIntentSender(),
+                                    GOOGLE_AUTH_REQUEST, null, 0, 0, 0);
+                        } catch (IntentSender.SendIntentException error) {
+                            showBackupError("Could not open Google authorization.");
+                        }
+                    } else {
+                        performGoogleAction(action, result);
+                    }
+                })
+                .addOnFailureListener(error -> showBackupError(
+                        "Google authorization failed. Check Google Play services and try again."));
+    }
+
+    private void performGoogleAction(GoogleAction action, AuthorizationResult authorization) {
+        if (action == GoogleAction.DISCONNECT) {
+            revokeGoogleAccess(authorization);
+            return;
+        }
+        String accessToken = authorization.getAccessToken();
+        backupExecutor.execute(() -> {
+            try {
+                DriveAppDataClient drive = new DriveAppDataClient();
+                if (action == GoogleAction.CONNECT) {
+                    boolean hasBackup = drive.hasBackup(accessToken);
+                    handler.post(() -> {
+                        BackupStatusStore status = new BackupStatusStore(this);
+                        status.setGoogleConnected(true);
+                        status.recordError("");
+                        if (hasBackup) {
+                            status.requireRestoreDecision();
+                            new AlertDialog.Builder(this)
+                                    .setTitle("Google Drive connected")
+                                    .setMessage("A Meditation Timer backup is available. Restore it now?")
+                                    .setNegativeButton("Not now", (dialog, which) ->
+                                            finishBackupOperation(true))
+                                    .setPositiveButton("Restore", (dialog, which) ->
+                                            performGoogleAction(GoogleAction.RESTORE,
+                                                    authorization))
+                                    .setOnCancelListener(dialog -> finishBackupOperation(true))
+                                    .show();
+                        } else {
+                            Toast.makeText(this, "Google Drive connected.",
+                                    Toast.LENGTH_LONG).show();
+                            finishBackupOperation(true);
+                            maybeRunAutomaticBackup();
+                        }
+                    });
+                } else if (action == GoogleAction.BACKUP
+                        || action == GoogleAction.AUTO_BACKUP) {
+                    String json = BackupCodec.encode(
+                            new BackupRepository(this).snapshot(System.currentTimeMillis()));
+                    drive.upload(accessToken, json);
+                    handler.post(() -> {
+                        new BackupStatusStore(this).recordSuccess(System.currentTimeMillis());
+                        if (action == GoogleAction.BACKUP) {
+                            Toast.makeText(this, "Backup saved privately in Google Drive.",
+                                    Toast.LENGTH_LONG).show();
+                        }
+                        finishBackupOperation(true);
+                    });
+                } else if (action == GoogleAction.RESTORE) {
+                    BackupSnapshot snapshot = BackupCodec.decode(drive.download(accessToken));
+                    handler.post(() -> {
+                        finishBackupOperation(false);
+                        confirmRestore(snapshot, "Google Drive");
+                    });
+                } else if (action == GoogleAction.DELETE) {
+                    drive.deleteBackup(accessToken);
+                    handler.post(() -> {
+                        new BackupStatusStore(this).recordBackupDeleted();
+                        Toast.makeText(this, "Google Drive backup permanently deleted.",
+                                Toast.LENGTH_LONG).show();
+                        finishBackupOperation(true);
+                    });
+                }
+            } catch (Exception error) {
+                handler.post(() -> showBackupError(cleanError(error)));
+            }
+        });
+    }
+
+    private void revokeGoogleAccess(AuthorizationResult authorization) {
+        Account account = authorization.toGoogleSignInAccount() == null
+                ? null : authorization.toGoogleSignInAccount().getAccount();
+        if (account == null) {
+            new BackupStatusStore(this).clearConnection();
+            Toast.makeText(this, "Google Drive disconnected.", Toast.LENGTH_SHORT).show();
+            finishBackupOperation(true);
+            return;
+        }
+        RevokeAccessRequest request = RevokeAccessRequest.builder()
+                .setAccount(account)
+                .setScopes(List.of(DRIVE_APPDATA_SCOPE))
+                .build();
+        Identity.getAuthorizationClient(this).revokeAccess(request)
+                .addOnSuccessListener(ignored -> {
+                    new BackupStatusStore(this).clearConnection();
+                    Toast.makeText(this, "Google Drive access revoked.", Toast.LENGTH_LONG).show();
+                    finishBackupOperation(true);
+                })
+                .addOnFailureListener(error -> showBackupError(
+                        "Could not revoke Google Drive access. Try again."));
+    }
+
+    private void confirmRestore(BackupSnapshot snapshot, String source) {
+        String created = snapshot.generatedAtMs() > 0L
+                ? formatBackupTime(snapshot.generatedAtMs()) : "Unknown";
+        new AlertDialog.Builder(this)
+                .setTitle("Restore from " + source + "?")
+                .setMessage("Backup date: " + created
+                        + "\nMeditation logs: " + snapshot.logs().size()
+                        + "\nResolutions: " + snapshot.resolutions().size()
+                        + "\n\nLogs and resolutions will be merged without duplicates. Timer settings and reminders will be replaced.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Restore", (dialog, which) -> {
+                    BackupRepository.RestoreResult result =
+                            new BackupRepository(this).restore(snapshot);
+                    if ("Google Drive".equals(source)) {
+                        new BackupStatusStore(this).clearRestoreDecision();
+                    }
+                    root.setBackgroundColor(currentColorTheme().backgroundColor());
+                    Toast.makeText(this, "Restored. Added " + result.logsAdded()
+                                    + " logs and " + result.resolutionsAdded() + " resolutions.",
+                            Toast.LENGTH_LONG).show();
+                    renderSelectedTab();
+                })
+                .show();
+    }
+
+    private void maybeRunAutomaticBackup() {
+        BackupStatusStore status = new BackupStatusStore(this);
+        if (backupOperationRunning || !status.isGoogleConnected()
+                || !status.isAutoBackupEnabled() || !status.isDirty()) {
+            return;
+        }
+        if (status.isRestoreDecisionRequired()) {
+            return;
+        }
+        authorizeGoogle(GoogleAction.AUTO_BACKUP);
+    }
+
+    private void finishBackupOperation(boolean rerender) {
+        backupOperationRunning = false;
+        pendingGoogleAction = null;
+        if (rerender && TAB_BACKUP.equals(selectedTab) && mainUiShown) {
+            renderSelectedTab();
+        }
+    }
+
+    private void showBackupError(String message) {
+        new BackupStatusStore(this).recordError(message);
+        backupOperationRunning = false;
+        pendingGoogleAction = null;
+        if (TAB_BACKUP.equals(selectedTab) && mainUiShown) {
+            renderSelectedTab();
+        }
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+    }
+
+    private String cleanError(Throwable error) {
+        String message = error == null ? "" : error.getMessage();
+        if (message == null || message.isBlank()) {
+            return "Backup operation failed. Try again.";
+        }
+        return message.length() > 180 ? message.substring(0, 180) : message;
+    }
+
+    private String formatBackupTime(long wallTimeMs) {
+        return new SimpleDateFormat("MMM d, yyyy · h:mm a", Locale.US)
+                .format(new Date(wallTimeMs));
+    }
+
     private void renderAbout() {
         restoreScreenMode();
         LinearLayout page = pageColumn();
@@ -912,7 +1252,9 @@ public final class MainActivity extends Activity {
         page.addView(clearDiagnostics, clearParams);
 
         page.addView(subsectionTitle("Version history"), matchWrap());
-        page.addView(bodyText("1.5.0 · August 21, 2026\n"
+        page.addView(bodyText("1.6.0 · August 21, 2026\n"
+                + "Private Google Drive backup, portable JSON export/import, restore safeguards, and explicit backup deletion.\n\n"
+                + "1.5.0 · August 21, 2026\n"
                 + "Meditation Bowl, preparation countdown, visible elapsed time, a Well done lotus, and meditation resolutions.\n\n"
                 + "1.4.0 · August 18, 2026\n"
                 + "Live Dim control joins the running-session Chimes and Vibrate controls.\n\n"
@@ -941,12 +1283,12 @@ public final class MainActivity extends Activity {
         }
         preferences.edit().putInt("last_whats_new", BuildConfig.VERSION_CODE).apply();
         new AlertDialog.Builder(this)
-                .setTitle("What’s new in 1.5.0")
-                .setMessage("• New Meditation Bowl sound\n"
-                        + "• Configurable preparation countdown, defaulting to 15 seconds\n"
-                        + "• Clearly visible elapsed and remaining time\n"
-                        + "• Well done celebration with a purple lotus\n"
-                        + "• Resolution tab for recording meditation commitments")
+                .setTitle("What’s new in 1.6.0")
+                .setMessage("• Private Google Drive backup for logs, resolutions, and settings\n"
+                        + "• Automatic backup with restore-before-upload protection\n"
+                        + "• Portable JSON export and import\n"
+                        + "• Delete cloud backup and disconnect Google access\n"
+                        + "• Encrypted Android device-backup allow-list")
                 .setPositiveButton("Continue", null)
                 .show();
     }
@@ -1404,6 +1746,7 @@ public final class MainActivity extends Activity {
                 if (chosen != currentColorTheme()) {
                     getSharedPreferences(SETTINGS_PREFS, MODE_PRIVATE).edit()
                             .putString("background_theme", chosen.id()).apply();
+                    new BackupStatusStore(MainActivity.this).markDirty();
                     root.setBackgroundColor(chosen.backgroundColor());
                     renderSelectedTab();
                 }
@@ -1491,6 +1834,77 @@ public final class MainActivity extends Activity {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == GOOGLE_AUTH_REQUEST) {
+            if (resultCode != RESULT_OK || data == null || pendingGoogleAction == null) {
+                finishBackupOperation(true);
+                return;
+            }
+            try {
+                AuthorizationResult result = Identity.getAuthorizationClient(this)
+                        .getAuthorizationResultFromIntent(data);
+                performGoogleAction(pendingGoogleAction, result);
+            } catch (ApiException error) {
+                showBackupError("Google authorization was not completed.");
+            }
+            return;
+        }
+        if (resultCode != RESULT_OK || data == null || data.getData() == null) {
+            return;
+        }
+        Uri uri = data.getData();
+        if (requestCode == BACKUP_EXPORT_REQUEST) {
+            backupExecutor.execute(() -> {
+                try {
+                    String json = BackupCodec.encode(
+                            new BackupRepository(this).snapshot(System.currentTimeMillis()));
+                    try (OutputStream output = getContentResolver().openOutputStream(uri, "w")) {
+                        if (output == null) {
+                            throw new IOException("The selected location could not be opened.");
+                        }
+                        output.write(json.getBytes(StandardCharsets.UTF_8));
+                    }
+                    handler.post(() -> Toast.makeText(this,
+                            "Portable backup file saved.", Toast.LENGTH_LONG).show());
+                } catch (Exception error) {
+                    handler.post(() -> showBackupError(cleanError(error)));
+                }
+            });
+        } else if (requestCode == BACKUP_IMPORT_REQUEST) {
+            backupExecutor.execute(() -> {
+                try {
+                    BackupSnapshot snapshot = BackupCodec.decode(readBackupFile(uri));
+                    handler.post(() -> confirmRestore(snapshot, "selected file"));
+                } catch (Exception error) {
+                    handler.post(() -> showBackupError(cleanError(error)));
+                }
+            });
+        }
+    }
+
+    private String readBackupFile(Uri uri) throws IOException {
+        try (InputStream input = getContentResolver().openInputStream(uri)) {
+            if (input == null) {
+                throw new IOException("The selected file could not be opened.");
+            }
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            byte[] buffer = new byte[8_192];
+            int total = 0;
+            int count;
+            while ((count = input.read(buffer)) != -1) {
+                total += count;
+                if (total > BackupCodec.MAX_BACKUP_BYTES) {
+                    throw new IOException("The selected backup is larger than 1 MB.");
+                }
+                output.write(buffer, 0, count);
+            }
+            return new String(output.toByteArray(), StandardCharsets.UTF_8);
+        }
+    }
+
+    @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
@@ -1525,6 +1939,7 @@ public final class MainActivity extends Activity {
         super.onResume();
         handler.removeCallbacks(uiTicker);
         handler.post(uiTicker);
+        maybeRunAutomaticBackup();
     }
 
     @Override
@@ -1549,6 +1964,7 @@ public final class MainActivity extends Activity {
         if (previewPlayer != null) {
             previewPlayer.release();
         }
+        backupExecutor.shutdownNow();
         super.onDestroy();
     }
 }

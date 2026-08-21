@@ -37,11 +37,11 @@
 
 - Let the user save a dated, free-text meditation resolution or commitment.
 - List past resolutions newest-first as Date and Comment and allow an individual entry to be deleted with confirmation.
-- Store resolutions only on the device.
+- Store resolutions locally and include them only in user-authorized backup/export paths.
 
 ## Reminder tab
 
-- Reminders default off and are stored only on the device.
+- Reminders default off, are stored locally, and are included only in user-authorized backup/export paths.
 - Allow one reminder schedule with Daily, Weekdays, Weekends, or selected days frequency and a user-selected local time.
 - Show the next scheduled reminder and allow the schedule to be disabled.
 - Request notification permission only when the user enables a reminder.
@@ -51,6 +51,7 @@
 ## Meditation Logs tab
 
 - Store start date/time, end date/time, and active meditation duration.
+- Store logs locally and include them only in user-authorized backup/export paths.
 - Paused time is excluded.
 - Support selecting one, multiple, or all entries and confirmed deletion.
 - Share logs as a generated UTF-8 text file through Android's chooser, including Drive and Gmail when installed.
@@ -68,7 +69,13 @@
 - Provide an explicit Disconnect action that revokes the app's Google authorization.
 - Also offer portable JSON export/import through Android's document picker, including user-visible Google Drive or local storage, as a secondary manual backup path.
 - Retain Android Auto Backup for encrypted install/device restoration, with explicit include/exclude rules; do not present it as a replacement for on-demand Google Drive backup/restore.
-- Finalize backup frequency, restore merge/replace behavior, and conflict handling before implementation.
+- Keep exactly one hidden backup named `meditation-timer-backup.json` in Drive's `appDataFolder`, replace it on later backups, remove accidental duplicates, and reject backups larger than 1 MB.
+- Automatic backup defaults on and runs opportunistically while the app is open after durable data/settings change. It never requests an offline refresh token or a server-side account credential.
+- On connect/reconnect, discover an existing cloud backup and require a restore/decline decision before automatic upload can overwrite it.
+- Restore merges logs and resolutions by stable ID, keeping local data on an ID collision; it replaces timer/reminder settings only after confirmation and reapplies the restored reminder schedule.
+- Provide explicit Backup now, Restore, Delete Google Drive backup, and Disconnect controls. Deleting the cloud backup also turns automatic backup off so it is not silently recreated.
+- Portable files use versioned JSON and validate app ID, schema version, field types, and the 1 MB limit before restore; warn users that portable files are readable by anyone with file access.
+- Never persist Google access tokens, passwords, signing data, active/pending timer state, diagnostics, caches, or device-specific identifiers in any backup.
 
 ## Delivery
 

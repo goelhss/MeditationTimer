@@ -2,11 +2,13 @@
 
 ## In progress
 
-- 2026-08-21: Design true in-app Google account authorization and Drive backup/restore for logs, resolutions, and settings, plus secondary portable file export/import and explicit Android Auto Backup rules.
+- 2026-08-21: Complete the 1.6.0 full regression, signed release, GitHub push, and Google Play internal-test rollout.
 - 2026-08-18: Run the first physical-phone smoke test from the Google Play internal-testing install.
 
 ## Done
 
+- 2026-08-21: Implemented least-privilege Google Drive app-data backup/restore, restore-before-upload protection, one-file/1 MB retention, portable JSON export/import, cloud deletion/disconnect, and encrypted Android backup rules.
+- 2026-08-21: Configured Google Auth Platform, enabled Drive API, saved only `drive.appdata`, and created the Play-signed Android OAuth client for `com.vishalgoel.meditationtimer`.
 - 2026-08-21: Added Meditation Bowl, background-safe preparation time, seconds-visible elapsed/remaining time, the dismissible purple-lotus “Well done.” prompt, and the Resolution tab.
 - 2026-08-21: Tested, signed, tagged, pushed, and published Meditation Timer `5 (1.5.0)` to internal testing; Play reports it available.
 - 2026-08-18: Added live Chimes, Vibrate, and Dim controls to the running meditation screen; changes apply without pausing or restarting, and both cue modes may be turned off for silence.

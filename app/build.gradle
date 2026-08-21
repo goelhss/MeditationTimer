@@ -19,8 +19,8 @@ android {
         applicationId "com.vishalgoel.meditationtimer"
         minSdk 26
         targetSdk 35
-        versionCode 5
-        versionName "1.5.0"
+        versionCode 6
+        versionName "1.6.0"
     }
 
     if (hasReleaseSigning) {
@@ -56,6 +56,7 @@ android {
 }
 
 dependencies {
+    implementation "com.google.android.gms:play-services-auth:21.6.0"
     testImplementation "junit:junit:4.13.2"
     testImplementation "org.json:json:20240303"
 }

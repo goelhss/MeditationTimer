@@ -28,7 +28,8 @@ run_always() {
         --tests com.vishalgoel.meditationtimer.ReminderScheduleTest \
         --tests com.vishalgoel.meditationtimer.MeditationLogCodecTest \
         --tests com.vishalgoel.meditationtimer.ResolutionCodecTest \
-        --tests com.vishalgoel.meditationtimer.AppPolicySourceTest
+        --tests com.vishalgoel.meditationtimer.AppPolicySourceTest \
+        --tests com.vishalgoel.meditationtimer.BackupSecuritySourceTest
 }
 
 run_targeted() {
@@ -51,12 +52,18 @@ run_targeted() {
                 --tests com.vishalgoel.meditationtimer.ReminderSourceTest \
                 --tests com.vishalgoel.meditationtimer.CueModeSourceTest
             ;;
+        backup)
+            "$GRADLE_BIN" :app:testDebugUnitTest \
+                --tests com.vishalgoel.meditationtimer.BackupCodecTest \
+                --tests com.vishalgoel.meditationtimer.BackupMergerTest \
+                --tests com.vishalgoel.meditationtimer.BackupSecuritySourceTest
+            ;;
         all)
             "$GRADLE_BIN" testDebugUnitTest
             "$GRADLE_BIN" :app:lintDebug
             ;;
         *)
-            printf 'Unknown TEST_SUITE: %s. Use always, timing, logs, ui, or all.\n' "$TEST_SUITE" >&2
+            printf 'Unknown TEST_SUITE: %s. Use always, timing, logs, ui, backup, or all.\n' "$TEST_SUITE" >&2
             exit 2
             ;;
     esac

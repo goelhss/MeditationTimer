@@ -13,12 +13,13 @@
 ```sh
 cd /Users/visgoe01/CarApps/MeditationTimer
 BUILD_AAB=0 TEST_SUITE=timing scripts/build.sh   # always + timing tests only
+BUILD_AAB=0 TEST_SUITE=backup scripts/build.sh   # always + backup/security tests only
 UPLOAD_PLAY=0 TEST_SUITE=all scripts/build.sh    # full tests + signed AAB
 UPLOAD_NO_COMMIT=1 TEST_SUITE=all scripts/build.sh # full validation edit, no rollout/Telegram
 TEST_SUITE=all scripts/build.sh                  # full tests, AAB, committed internal upload/Telegram
 ```
 
-The always-required suite runs before every mode. Targeted suites are `timing`, `logs`, and `ui`; `all` is required before the first release and major uploads.
+The always-required suite runs before every mode and includes the backup security-policy test. Targeted suites are `timing`, `logs`, `ui`, and `backup`; `all` is required before the first release and major uploads.
 
 ## Artifact
 

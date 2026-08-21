@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <include domain="sharedpref" path="meditation_logs.xml"
+        requireFlags="clientSideEncryption" />
+    <include domain="sharedpref" path="meditation_resolutions.xml"
+        requireFlags="clientSideEncryption" />
+    <include domain="sharedpref" path="timer_settings.xml"
+        requireFlags="clientSideEncryption" />
+    <include domain="sharedpref" path="meditation_reminder.xml"
+        requireFlags="clientSideEncryption" />
+</full-backup-content>

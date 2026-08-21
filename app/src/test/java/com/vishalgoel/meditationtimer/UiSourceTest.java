@@ -16,6 +16,7 @@ public final class UiSourceTest {
         assertTrue(source.contains("tabButton(\"Logs\""));
         assertTrue(source.contains("tabButton(\"Resolution\""));
         assertTrue(source.contains("tabButton(\"Reminder\""));
+        assertTrue(source.contains("tabButton(\"Backup\""));
         assertTrue(source.contains("tabButton(\"About\""));
         assertFalse(source.contains("TAB_SETTINGS"));
         assertTrue(source.contains("getInt(\"duration\", 60)"));
@@ -50,7 +51,7 @@ public final class UiSourceTest {
 
         assertTrue(source.contains("Background color"));
         assertTrue(source.contains("Check for Updates"));
-        assertTrue(source.contains("What’s new in 1.5.0"));
+        assertTrue(source.contains("What’s new in 1.6.0"));
         assertTrue(source.contains("Share Debug logs"));
         assertTrue(source.contains("View MIT License"));
         assertTrue(source.contains("LotusSplashView.create"));
