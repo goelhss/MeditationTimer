@@ -9,4 +9,7 @@
 - `TEST_SUITE=backup`: backup JSON round-trip and validation, history merge/collision behavior, least-privilege scope, token exclusion, and Android backup-rule checks.
 - `TEST_SUITE=all`: every unit and source-level test. Required before the first release and periodically thereafter.
 
+`scripts/publish_google_play_internal.sh` always selects `TEST_SUITE=all`; release
+publishing cannot use a reduced suite.
+
 Run tests only with `BUILD_AAB=0`, or run tests plus a signed release bundle with `UPLOAD_PLAY=0`.

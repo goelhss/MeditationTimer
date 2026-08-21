@@ -2,6 +2,22 @@
 
 Newest entries go first. Build, test, GitHub, artifact checksum/size, Play upload, and Telegram results are recorded here without secrets.
 
+## 2026-08-21 · 1.6.0 (versionCode 6) · private Google backup release
+
+- Clean release source commit: `ba323035909a84064fd247c56166795fa847085c` (`Add private Google Drive backup`).
+- Always-required and full JVM/source-policy suites: 48 app tests passed, 0 failed; shared-module tests also passed.
+- Android lint: passed.
+- Signed AAB: `release/MeditationTimer-1.6.0-v6-release.aab`.
+- Size: 2,175,763 bytes.
+- SHA-256: `d83716c09907f88ddf5433b51fe9f859c61138b71d87ce519b6cfd0b8c5df385`.
+- Signature verification: passed during the release build and Play accepted the bundle.
+- GitHub: pushed `main` through `ba32303` and annotated tag `meditation-timer-1.6.0-v6` to `https://github.com/goelhss/MeditationTimer`.
+- Google Auth: Drive API enabled; least-privilege `drive.appdata` Android OAuth client uses the Play app-signing certificate; `vishal.ullu@gmail.com` is an OAuth test user.
+- Google Play: version `6 (1.6.0)` published to internal testing and verified as **Available to internal testers** on 2026-08-21.
+- Play device validation: 11,264 phones remain supported and no previously supported devices were removed.
+- Automated Play API upload: service account still needs app-level Meditation Timer permission; this release was completed through the signed-in Play Console.
+- Physical-phone smoke test: pending for Google connect, backup, guarded restore, delete/disconnect, and portable file export/import.
+
 ## 2026-08-21 · 1.5.0 (versionCode 5) · preparation, resolutions, and completion release
 
 - Clean release source commit: `c56f519` (`Add preparation and meditation resolutions`).

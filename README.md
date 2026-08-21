@@ -11,3 +11,10 @@ UPLOAD_PLAY=0 scripts/build.sh
 ```
 
 See `scripts/build_steps.md` and `Testing.md` for delivery and test-suite details.
+
+After the one-time Play service-account permission is granted, the intentionally
+argument-free internal publisher is:
+
+```sh
+/Users/visgoe01/CarApps/MeditationTimer/scripts/publish_google_play_internal.sh
+```

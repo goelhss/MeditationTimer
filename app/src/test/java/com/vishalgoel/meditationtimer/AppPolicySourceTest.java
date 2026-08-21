@@ -41,6 +41,7 @@ public final class AppPolicySourceTest {
         String build = TestSources.read("scripts/build.sh");
         String bundle = TestSources.read("scripts/build-aab.sh");
         String upload = TestSources.read("scripts/upload_play_internal.sh");
+        String publish = TestSources.read("scripts/publish_google_play_internal.sh");
 
         assertTrue(build.contains("Running always-required tests"));
         assertTrue(build.contains("TEST_SUITE"));
@@ -53,5 +54,12 @@ public final class AppPolicySourceTest {
         assertTrue(upload.contains("export PATH"));
         assertTrue(upload.contains("com.vishalgoel.meditationtimer"));
         assertTrue(upload.contains("--app MeditationTimer"));
+        assertTrue(publish.contains("accepts no arguments"));
+        assertTrue(publish.contains("git status --porcelain"));
+        assertTrue(publish.contains("git rev-parse origin/main"));
+        assertTrue(publish.contains("TEST_SUITE=all"));
+        assertTrue(publish.contains("UPLOAD_PLAY=1"));
+        assertTrue(publish.contains("UPLOAD_NO_COMMIT=0"));
+        assertFalse(publish.contains("--track"));
     }
 }

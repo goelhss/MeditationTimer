@@ -2,11 +2,13 @@
 
 ## In progress
 
-- 2026-08-21: Complete the 1.6.0 full regression, signed release, GitHub push, and Google Play internal-test rollout.
+- 2026-08-21: Grant the Play API service account app-level access and verify the narrow one-command internal publisher.
 - 2026-08-18: Run the first physical-phone smoke test from the Google Play internal-testing install.
 
 ## Done
 
+- 2026-08-21: Full-tested, signed, tagged, pushed, and published Meditation Timer `6 (1.6.0)` to internal testing; Play reports it available.
+- 2026-08-21: Added an argument-free Meditation Timer internal publisher with clean-main, pushed-commit, release-note, full-test, lint, signing, and signature-verification gates.
 - 2026-08-21: Implemented least-privilege Google Drive app-data backup/restore, restore-before-upload protection, one-file/1 MB retention, portable JSON export/import, cloud deletion/disconnect, and encrypted Android backup rules.
 - 2026-08-21: Configured Google Auth Platform, enabled Drive API, saved only `drive.appdata`, and created the Play-signed Android OAuth client for `com.vishalgoel.meditationtimer`.
 - 2026-08-21: Added Meditation Bowl, background-safe preparation time, seconds-visible elapsed/remaining time, the dismissible purple-lotus “Well done.” prompt, and the Resolution tab.
