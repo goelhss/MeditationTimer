@@ -44,12 +44,16 @@ Committed Play uploads alone send `google-console-upload` success/failure throug
 
 ## One-command internal publishing
 
-`scripts/publish_google_play_internal.sh` accepts no arguments and can publish only
-this app through the package-locked uploader and internal track default. It refuses
+`scripts/publish_google_play_internal.sh` accepts no publishing arguments and can
+publish only this app through the package-locked uploader and internal track default. It refuses
 to run unless the repository is clean, checked out on `main`, equal to the locally
 recorded `origin/main`, and has non-empty release notes. It then runs every unit and
 source-policy test, Android lint, signing, AAB signature verification, the committed
 internal-track upload, and the standard Telegram result notification.
+
+`scripts/publish_google_play_internal.sh --check` performs only the safe repository,
+release-note, and credential-file preflight. It does not test, build, upload, publish,
+or notify; use it when granting the one-time local command approval.
 
 The one-time local command approval and Google Play service-account access are
 separate controls. The Play service account must have app-level permission for

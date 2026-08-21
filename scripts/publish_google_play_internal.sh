@@ -1,10 +1,13 @@
 #!/usr/bin/env sh
 set -eu
 
-# Intentionally accepts no arguments. This is the narrow command approved for
-# Meditation Timer internal releases; package and track remain fixed downstream.
-if [ "$#" -ne 0 ]; then
-    printf 'This publisher accepts no arguments.\n' >&2
+# Publishing intentionally accepts no arguments. The only accepted option is a
+# harmless preflight used when granting the command's one-time local approval.
+CHECK_ONLY=0
+if [ "$#" -eq 1 ] && [ "$1" = "--check" ]; then
+    CHECK_ONLY=1
+elif [ "$#" -ne 0 ]; then
+    printf 'This publisher accepts no publishing arguments; use only --check for preflight.\n' >&2
     exit 2
 fi
 
@@ -30,6 +33,17 @@ fi
 if [ ! -s "$PROJECT_DIR/play_release_notes.txt" ]; then
     printf 'Refusing to publish: play_release_notes.txt is missing or empty.\n' >&2
     exit 1
+fi
+
+SERVICE_ACCOUNT_JSON="${MEDITATION_TIMER_PLAY_SERVICE_ACCOUNT_JSON:-$PROJECT_DIR/../secrets/google-play-service-account.json}"
+if [ ! -f "$SERVICE_ACCOUNT_JSON" ]; then
+    printf 'Refusing to publish: Google Play service-account JSON is missing.\n' >&2
+    exit 1
+fi
+
+if [ "$CHECK_ONLY" = "1" ]; then
+    printf 'Meditation Timer publisher preflight passed. No tests, build, upload, or notification were performed.\n'
+    exit 0
 fi
 
 printf 'Publishing Meditation Timer to Google Play internal testing.\n'

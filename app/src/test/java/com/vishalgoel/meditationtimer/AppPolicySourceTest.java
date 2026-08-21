@@ -54,7 +54,9 @@ public final class AppPolicySourceTest {
         assertTrue(upload.contains("export PATH"));
         assertTrue(upload.contains("com.vishalgoel.meditationtimer"));
         assertTrue(upload.contains("--app MeditationTimer"));
-        assertTrue(publish.contains("accepts no arguments"));
+        assertTrue(publish.contains("accepts no publishing arguments"));
+        assertTrue(publish.contains("--check"));
+        assertTrue(publish.contains("CHECK_ONLY"));
         assertTrue(publish.contains("git status --porcelain"));
         assertTrue(publish.contains("git rev-parse origin/main"));
         assertTrue(publish.contains("TEST_SUITE=all"));
