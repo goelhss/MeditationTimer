@@ -30,4 +30,18 @@ public final class BackupMergerTest {
 
         assertEquals(List.of(added, local), merged);
     }
+
+    @Test
+    public void contentDuplicatesWithDifferentIdsAreNotAdded() {
+        MeditationLog localLog = new MeditationLog("local", 10L, 20L, 10L);
+        MeditationLog duplicateLog = new MeditationLog("backup-copy", 10L, 20L, 10L);
+        Resolution localResolution = new Resolution("local", 30L, "Meditate daily");
+        Resolution duplicateResolution = new Resolution(
+                "backup-copy", 30L, "  Meditate   daily  ");
+
+        assertEquals(List.of(localLog),
+                BackupMerger.mergeLogs(List.of(localLog), List.of(duplicateLog)));
+        assertEquals(List.of(localResolution), BackupMerger.mergeResolutions(
+                List.of(localResolution), List.of(duplicateResolution)));
+    }
 }

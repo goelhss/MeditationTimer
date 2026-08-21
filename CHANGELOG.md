@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.0 - 2026-08-21
+
+- Fixed individual meditation-log selection so Delete selected enables immediately.
+- Added Quick 5 minute, Regular 30 minute, A good weekly 60 minute, and saved Custom configurations, including cue sound and display choices.
+- Strengthened restore to preserve existing logs/resolutions and reject content-identical duplicates even when IDs differ.
+- Added a Stats tab with Daily, Weekly, Monthly, 3 months, 6 months, and Full year charts.
+- Added once-per-meditation-day streak tracking with a three-full-day inactivity grace period and motivational reminder text.
+
 ## 1.6.0 - 2026-08-21
 
 - Added true in-app Google authorization with the least-privilege Drive application-data scope.

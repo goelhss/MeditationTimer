@@ -19,18 +19,17 @@ public final class BackupRepository {
     public BackupSnapshot snapshot(long generatedAtMs) {
         SharedPreferences settings = context.getSharedPreferences(SETTINGS_PREFS,
                 Context.MODE_PRIVATE);
+        MeditationConfigurationStore configurationStore =
+                new MeditationConfigurationStore(context);
+        MeditationConfiguration current = configurationStore.current();
         BackupSnapshot.TimerSettings timerSettings = new BackupSnapshot.TimerSettings(
-                settings.getInt("duration", 60),
-                settings.getInt("prep_seconds", 15),
-                settings.getInt("primary", 5),
-                settings.getInt("additional", 10),
-                settings.getInt("finish", 10),
-                settings.getBoolean("chimes", true),
-                settings.getBoolean("vibrate", false),
-                settings.getBoolean("dim", true),
-                settings.getString("chime_sound", ChimeSound.DEFAULT.id()),
-                settings.getString("timer_display", TimerDisplayMode.DEFAULT.id()),
-                settings.getString("background_theme", AppColorTheme.DARK_PURPLE.id()));
+                current.durationMinutes(), current.preparationSeconds(),
+                current.primaryMinutes(), current.additionalMinutes(), current.finishDings(),
+                current.chimes(), current.vibrate(), current.dim(), current.chimeSoundId(),
+                current.timerDisplayId(),
+                settings.getString("background_theme", AppColorTheme.DARK_PURPLE.id()),
+                configurationStore.customSaved(), configurationStore.custom(),
+                configurationStore.selectedPreset().id());
         return new BackupSnapshot(generatedAtMs,
                 new MeditationLogStore(context).all(),
                 new ResolutionStore(context).all(),
@@ -50,17 +49,17 @@ public final class BackupRepository {
         resolutionStore.replaceAll(mergedResolutions);
 
         BackupSnapshot.TimerSettings settings = incoming.settings();
+        MeditationConfigurationStore configurationStore =
+                new MeditationConfigurationStore(context);
+        configurationStore.saveCurrent(new MeditationConfiguration(
+                        settings.durationMinutes(), settings.preparationSeconds(),
+                        settings.primaryMinutes(), settings.additionalMinutes(),
+                        settings.finishDings(), settings.chimes(), settings.vibrate(),
+                        settings.dim(), settings.chimeSoundId(), settings.timerDisplayId()),
+                MeditationPreset.fromId(settings.selectedPresetId()));
+        configurationStore.restoreCustom(settings.customConfiguration(),
+                settings.customSaved(), settings.selectedPresetId());
         context.getSharedPreferences(SETTINGS_PREFS, Context.MODE_PRIVATE).edit()
-                .putInt("duration", settings.durationMinutes())
-                .putInt("prep_seconds", settings.preparationSeconds())
-                .putInt("primary", settings.primaryMinutes())
-                .putInt("additional", settings.additionalMinutes())
-                .putInt("finish", settings.finishDings())
-                .putBoolean("chimes", settings.chimes())
-                .putBoolean("vibrate", settings.vibrate())
-                .putBoolean("dim", settings.dim())
-                .putString("chime_sound", settings.chimeSoundId())
-                .putString("timer_display", settings.timerDisplayId())
                 .putString("background_theme", settings.backgroundThemeId())
                 .apply();
         new ReminderStore(context).save(incoming.reminder());

@@ -1,3 +1,3 @@
-Connect Google Drive for private backup and restore of logs, resolutions, and settings.
-Export or import a portable JSON backup when you want a user-controlled copy.
-Delete the private cloud backup or disconnect Google access at any time.
+Choose Quick 5, Regular 30, Weekly 60, or save your own Custom meditation setup.
+Delete selected log entries reliably and restore backups additively without duplicates.
+Explore daily-to-yearly charts, current and best streaks, and streak encouragement.

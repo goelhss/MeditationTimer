@@ -20,7 +20,10 @@ public record BackupSnapshot(
             boolean dim,
             String chimeSoundId,
             String timerDisplayId,
-            String backgroundThemeId) {
+            String backgroundThemeId,
+            boolean customSaved,
+            MeditationConfiguration customConfiguration,
+            String selectedPresetId) {
 
         public TimerSettings {
             new TimerSchedule(durationMinutes, primaryMinutes, additionalMinutes, finishDings);
@@ -33,6 +36,11 @@ public record BackupSnapshot(
             chimeSoundId = ChimeSound.fromId(chimeSoundId).id();
             timerDisplayId = TimerDisplayMode.fromId(timerDisplayId).id();
             backgroundThemeId = AppColorTheme.fromId(backgroundThemeId).id();
+            customConfiguration = customConfiguration == null
+                    ? new MeditationConfiguration(durationMinutes, preparationSeconds,
+                    primaryMinutes, additionalMinutes, finishDings, chimes, vibrate, dim,
+                    chimeSoundId, timerDisplayId) : customConfiguration;
+            selectedPresetId = MeditationPreset.fromId(selectedPresetId).id();
         }
     }
 }

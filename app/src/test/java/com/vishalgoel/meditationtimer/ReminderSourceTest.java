@@ -19,6 +19,8 @@ public final class ReminderSourceTest {
         assertTrue(receiver.contains("MainActivity.EXTRA_OPEN_TAB"));
         assertTrue(receiver.contains("MainActivity.TAB_TIMER"));
         assertTrue(receiver.contains("Notification.CATEGORY_REMINDER"));
+        assertTrue(receiver.contains("MeditationStats.streak"));
+        assertTrue(receiver.contains("Grow old with a healthy soul. Meditate daily"));
     }
 
     @Test

@@ -25,10 +25,13 @@ run_always() {
         --tests com.vishalgoel.meditationtimer.TimerStateTest \
         --tests com.vishalgoel.meditationtimer.ChimeSoundTest \
         --tests com.vishalgoel.meditationtimer.TimerDisplayModeTest \
+        --tests com.vishalgoel.meditationtimer.MeditationPresetTest \
+        --tests com.vishalgoel.meditationtimer.MeditationStatsTest \
         --tests com.vishalgoel.meditationtimer.ReminderScheduleTest \
         --tests com.vishalgoel.meditationtimer.MeditationLogCodecTest \
         --tests com.vishalgoel.meditationtimer.ResolutionCodecTest \
         --tests com.vishalgoel.meditationtimer.AppPolicySourceTest \
+        --tests com.vishalgoel.meditationtimer.BackupMergerTest \
         --tests com.vishalgoel.meditationtimer.BackupSecuritySourceTest
 }
 

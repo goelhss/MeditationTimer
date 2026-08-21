@@ -36,6 +36,10 @@ public final class BackupCodec {
             settingsJson.put("chimeSound", settings.chimeSoundId());
             settingsJson.put("timerDisplay", settings.timerDisplayId());
             settingsJson.put("backgroundTheme", settings.backgroundThemeId());
+            settingsJson.put("customSaved", settings.customSaved());
+            settingsJson.put("selectedPreset", settings.selectedPresetId());
+            settingsJson.put("customConfiguration",
+                    encodeConfiguration(settings.customConfiguration()));
             root.put("settings", settingsJson);
 
             ReminderSchedule reminder = snapshot.reminder();
@@ -83,7 +87,7 @@ public final class BackupCodec {
             List<Resolution> resolutions = ResolutionCodec.decode(resolutionsJson.toString());
 
             JSONObject settings = requiredObject(root, "settings");
-            BackupSnapshot.TimerSettings timerSettings = new BackupSnapshot.TimerSettings(
+            MeditationConfiguration currentConfiguration = new MeditationConfiguration(
                     requiredInt(settings, "durationMinutes"),
                     requiredInt(settings, "preparationSeconds"),
                     requiredInt(settings, "primaryMinutes"),
@@ -93,8 +97,25 @@ public final class BackupCodec {
                     requiredBoolean(settings, "vibrate"),
                     requiredBoolean(settings, "dim"),
                     requiredString(settings, "chimeSound"),
-                    requiredString(settings, "timerDisplay"),
-                    requiredString(settings, "backgroundTheme"));
+                    requiredString(settings, "timerDisplay"));
+            MeditationConfiguration customConfiguration = settings.has("customConfiguration")
+                    ? decodeConfiguration(requiredObject(settings, "customConfiguration"))
+                    : currentConfiguration;
+            BackupSnapshot.TimerSettings timerSettings = new BackupSnapshot.TimerSettings(
+                    currentConfiguration.durationMinutes(),
+                    currentConfiguration.preparationSeconds(),
+                    currentConfiguration.primaryMinutes(),
+                    currentConfiguration.additionalMinutes(),
+                    currentConfiguration.finishDings(),
+                    currentConfiguration.chimes(),
+                    currentConfiguration.vibrate(),
+                    currentConfiguration.dim(),
+                    currentConfiguration.chimeSoundId(),
+                    currentConfiguration.timerDisplayId(),
+                    requiredString(settings, "backgroundTheme"),
+                    settings.optBoolean("customSaved", false),
+                    customConfiguration,
+                    settings.optString("selectedPreset", MeditationPreset.CUSTOM.id()));
 
             JSONObject reminderJson = requiredObject(root, "reminder");
             ReminderSchedule reminder = new ReminderSchedule(
@@ -148,5 +169,36 @@ public final class BackupCodec {
             throw new IllegalArgumentException("The backup has an invalid " + key + ".");
         }
         return text;
+    }
+
+    private static JSONObject encodeConfiguration(MeditationConfiguration value)
+            throws JSONException {
+        JSONObject json = new JSONObject();
+        json.put("durationMinutes", value.durationMinutes());
+        json.put("preparationSeconds", value.preparationSeconds());
+        json.put("primaryMinutes", value.primaryMinutes());
+        json.put("additionalMinutes", value.additionalMinutes());
+        json.put("finishDings", value.finishDings());
+        json.put("chimes", value.chimes());
+        json.put("vibrate", value.vibrate());
+        json.put("dim", value.dim());
+        json.put("chimeSound", value.chimeSoundId());
+        json.put("timerDisplay", value.timerDisplayId());
+        return json;
+    }
+
+    private static MeditationConfiguration decodeConfiguration(JSONObject json)
+            throws JSONException {
+        return new MeditationConfiguration(
+                requiredInt(json, "durationMinutes"),
+                requiredInt(json, "preparationSeconds"),
+                requiredInt(json, "primaryMinutes"),
+                requiredInt(json, "additionalMinutes"),
+                requiredInt(json, "finishDings"),
+                requiredBoolean(json, "chimes"),
+                requiredBoolean(json, "vibrate"),
+                requiredBoolean(json, "dim"),
+                requiredString(json, "chimeSound"),
+                requiredString(json, "timerDisplay"));
     }
 }

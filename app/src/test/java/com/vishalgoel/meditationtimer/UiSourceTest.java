@@ -11,22 +11,28 @@ public final class UiSourceTest {
     public void keepsRequestedTabsAndTimerDefaults() throws IOException {
         String source = TestSources.read(
                 "app/src/main/java/com/vishalgoel/meditationtimer/MainActivity.java");
+        String configurationStore = TestSources.read(
+                "app/src/main/java/com/vishalgoel/meditationtimer/MeditationConfigurationStore.java");
 
         assertTrue(source.contains("tabButton(\"Timer\""));
         assertTrue(source.contains("tabButton(\"Logs\""));
+        assertTrue(source.contains("tabButton(\"Stats\""));
         assertTrue(source.contains("tabButton(\"Resolution\""));
         assertTrue(source.contains("tabButton(\"Reminder\""));
         assertTrue(source.contains("tabButton(\"Backup\""));
         assertTrue(source.contains("tabButton(\"About\""));
         assertFalse(source.contains("TAB_SETTINGS"));
-        assertTrue(source.contains("getInt(\"duration\", 60)"));
-        assertTrue(source.contains("getInt(\"primary\", 5)"));
-        assertTrue(source.contains("getInt(\"additional\", 10)"));
-        assertTrue(source.contains("getInt(\"finish\", 10)"));
-        assertTrue(source.contains("getInt(\"prep_seconds\", 15)"));
-        assertTrue(source.contains("getBoolean(\"dim\", true)"));
-        assertTrue(source.contains("getBoolean(\"chimes\", true)"));
-        assertTrue(source.contains("getBoolean(\"vibrate\", false)"));
+        assertTrue(configurationStore.contains("getInt(prefix + \"duration\", 60)"));
+        assertTrue(configurationStore.contains("getInt(prefix + \"primary\", 5)"));
+        assertTrue(configurationStore.contains("getInt(prefix + \"additional\", 10)"));
+        assertTrue(configurationStore.contains("getInt(prefix + \"finish\", 10)"));
+        assertTrue(configurationStore.contains("getInt(prefix + \"prep_seconds\", 15)"));
+        assertTrue(configurationStore.contains("getBoolean(prefix + \"dim\", true)"));
+        assertTrue(configurationStore.contains("getBoolean(prefix + \"chimes\", true)"));
+        assertTrue(configurationStore.contains("getBoolean(prefix + \"vibrate\", false)"));
+        assertTrue(source.contains("What do you want to do today?"));
+        assertTrue(source.contains("Save as the Custom configuration"));
+        assertTrue(source.contains("configurationStore.saveCustom"));
         assertTrue(source.contains("Ding sound"));
         assertTrue(source.contains("chimeSoundSpinner"));
         assertTrue(source.contains("Timer display"));
@@ -42,6 +48,10 @@ public final class UiSourceTest {
         assertTrue(source.contains("R.drawable.lotus_splash"));
         assertTrue(source.contains("renderResolution"));
         assertTrue(source.contains("Save resolution"));
+        assertTrue(source.contains("renderStats"));
+        assertTrue(source.contains("StatsChartView"));
+        assertTrue(source.contains("MeditationStats.streak"));
+        assertTrue(source.contains("updateSelectionActions.run()"));
     }
 
     @Test
@@ -51,7 +61,7 @@ public final class UiSourceTest {
 
         assertTrue(source.contains("Background color"));
         assertTrue(source.contains("Check for Updates"));
-        assertTrue(source.contains("What’s new in 1.6.0"));
+        assertTrue(source.contains("What’s new in 1.7.0"));
         assertTrue(source.contains("Share Debug logs"));
         assertTrue(source.contains("View MIT License"));
         assertTrue(source.contains("LotusSplashView.create"));

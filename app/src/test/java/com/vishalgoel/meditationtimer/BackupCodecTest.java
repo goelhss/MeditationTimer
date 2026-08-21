@@ -26,6 +26,7 @@ public final class BackupCodecTest {
         assertEquals(original.reminder().minute(), decoded.reminder().minute());
         assertEquals(original.reminder().customDaysMask(), decoded.reminder().customDaysMask());
         assertTrue(json.contains("com.vishalgoel.meditationtimer"));
+        assertTrue(json.contains("customConfiguration"));
     }
 
     @Test
@@ -46,13 +47,28 @@ public final class BackupCodecTest {
         assertThrows(IllegalArgumentException.class, () -> BackupCodec.decode(oversized));
     }
 
+    @Test
+    public void olderBackupWithoutCustomPresetLoadsCurrentSettingsAsCustom() {
+        String json = BackupCodec.encode(sample())
+                .replaceAll(",?\\s*\"customSaved\"\\s*:\\s*true", "")
+                .replaceAll(",?\\s*\"selectedPreset\"\\s*:\\s*\"[^\"]+\"", "")
+                .replaceAll(",?\\s*\"customConfiguration\"\\s*:\\s*\\{[^}]+}", "");
+
+        BackupSnapshot decoded = BackupCodec.decode(json);
+
+        assertEquals(MeditationPreset.CUSTOM.id(), decoded.settings().selectedPresetId());
+        assertEquals(60, decoded.settings().customConfiguration().durationMinutes());
+    }
+
     private static BackupSnapshot sample() {
         return new BackupSnapshot(123_456L,
                 List.of(new MeditationLog("log-1", 100L, 200L, 100L)),
                 List.of(new Resolution("resolution-1", 300L, "Meditate daily")),
                 new BackupSnapshot.TimerSettings(60, 15, 5, 10, 10,
                         true, false, true, ChimeSound.DEFAULT.id(),
-                        TimerDisplayMode.DEFAULT.id(), AppColorTheme.DARK_PURPLE.id()),
+                        TimerDisplayMode.DEFAULT.id(), AppColorTheme.DARK_PURPLE.id(),
+                        true, MeditationPreset.REGULAR_30.resolve(null),
+                        MeditationPreset.CUSTOM.id()),
                 new ReminderSchedule(true, ReminderSchedule.Frequency.WEEKDAYS,
                         8, 30, ReminderSchedule.WEEKDAYS_MASK));
     }
