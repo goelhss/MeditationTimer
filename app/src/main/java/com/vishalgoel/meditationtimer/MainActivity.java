@@ -1479,7 +1479,7 @@ public final class MainActivity extends Activity {
 
         page.addView(subsectionTitle("Version history"), matchWrap());
         page.addView(bodyText("1.7.0 · August 21, 2026\n"
-                + "Session presets and saved Custom configuration, working individual log deletion, additive deduplicated restore, meditation charts, optional streak controls, persistent longest-ever history, and a 30-day vacation pause.\n\n"
+                + "Session presets and saved Custom configuration, working individual log deletion, additive deduplicated restore, meditation charts, optional streak controls, persistent longest-ever history, a 30-day vacation pause, and new 13-petal purple-lotus ocean artwork.\n\n"
                 + "1.6.0 · August 21, 2026\n"
                 + "Private Google Drive backup, portable JSON export/import, restore safeguards, and explicit backup deletion.\n\n"
                 + "1.5.0 · August 21, 2026\n"
@@ -1517,7 +1517,8 @@ public final class MainActivity extends Activity {
                         + "• Additive restore with content duplicate protection\n"
                         + "• Daily through yearly charts in the new Stats tab\n"
                         + "• Optional streak counting and reminder encouragement\n"
-                        + "• Longest-ever history and a respectful 30-day vacation pause")
+                        + "• Longest-ever history and a respectful 30-day vacation pause\n"
+                        + "• New 13-petal purple-lotus ocean icon and in-app artwork")
                 .setPositiveButton("Continue", null)
                 .show();
     }
@@ -1624,8 +1625,8 @@ public final class MainActivity extends Activity {
         panel.setGravity(Gravity.CENTER_HORIZONTAL);
         panel.setPadding(dp(24), dp(4), dp(24), dp(6));
         ImageView lotus = new ImageView(this);
-        lotus.setImageResource(R.drawable.lotus_splash);
-        lotus.setContentDescription("Purple lotus");
+        lotus.setImageResource(R.drawable.lotus_ocean_13_petals);
+        lotus.setContentDescription("Purple 13-petal lotus over the ocean");
         lotus.setAdjustViewBounds(true);
         panel.addView(lotus, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));

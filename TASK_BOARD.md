@@ -2,7 +2,6 @@
 
 ## In progress
 
-- 2026-08-21: Hold the 1.7.0 release until the rainbow-lotus/cat artwork is previewed and approved.
 - 2026-08-21: Before publishing 1.7.0, update the Play Console foreground-service declaration to the truthfully described meditation-countdown `specialUse` type.
 - Before any Play submission on or after 2026-08-31: install the Android 16 SDK, upgrade the compatible Android build toolchain, target API 36, and rerun full/device tests.
 - 2026-08-21: Grant the Play API service account app-level access and verify the narrow one-command internal publisher.
@@ -10,6 +9,7 @@
 
 ## Done
 
+- 2026-08-21: Replaced the launcher, Google Play, launch-screen, and completion artwork with the approved original 13-petal purple lotus over an ocean; added exact-petal-count and resource-wiring regression checks.
 - 2026-08-21: Added independent streak-counting and streak-reminder controls, persistent current/longest summaries in Logs and exports, a bounded 30-day vacation pause, respectful restart messaging, backup/restore coverage, accessibility descriptions, and a compact two-row tab layout; 61 app tests and Android lint pass.
 - 2026-08-21: Full-tested, signed, tagged, pushed, and published Meditation Timer `6 (1.6.0)` to internal testing; Play reports it available.
 - 2026-08-21: Added an argument-free Meditation Timer internal publisher with clean-main, pushed-commit, release-note, full-test, lint, signing, and signature-verification gates.

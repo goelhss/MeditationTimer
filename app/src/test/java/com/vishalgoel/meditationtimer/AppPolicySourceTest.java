@@ -36,6 +36,8 @@ public final class AppPolicySourceTest {
         assertTrue(manifest.contains("android.permission.INTERNET"));
         assertTrue(manifest.contains("android:dataExtractionRules="));
         assertTrue(manifest.contains("android:fullBackupContent="));
+        assertTrue(manifest.contains("android:icon=\"@drawable/ic_meditation\""));
+        assertTrue(manifest.contains("android:roundIcon=\"@drawable/ic_meditation\""));
     }
 
     @Test

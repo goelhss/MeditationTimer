@@ -1,9 +1,12 @@
 package com.vishalgoel.meditationtimer;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.Test;
 
 public final class UiSourceTest {
@@ -45,7 +48,7 @@ public final class UiSourceTest {
         assertTrue(source.contains("Turn both cue switches off for silence"));
         assertTrue(source.contains("Elapsed \" + MeditationTimerService.formatCountdown"));
         assertTrue(source.contains("Well done."));
-        assertTrue(source.contains("R.drawable.lotus_splash"));
+        assertTrue(source.contains("R.drawable.lotus_ocean_13_petals"));
         assertTrue(source.contains("renderResolution"));
         assertTrue(source.contains("Save resolution"));
         assertTrue(source.contains("renderStats"));
@@ -73,7 +76,16 @@ public final class UiSourceTest {
         assertFalse(source.contains("MindfulSplashView.create"));
         String splash = TestSources.read(
                 "app/src/main/java/com/vishalgoel/meditationtimer/LotusSplashView.java");
-        assertTrue(splash.contains("R.drawable.lotus_splash"));
+        assertTrue(splash.contains("R.drawable.lotus_ocean_13_petals"));
         assertFalse(splash.toLowerCase().contains("countdown"));
+
+        String artwork = TestSources.read(
+                "docs/assets/meditation-timer-purple-lotus-ocean-13-petals.svg");
+        Matcher numberedPetals = Pattern.compile("<!-- \\d+: ").matcher(artwork);
+        int petalCount = 0;
+        while (numberedPetals.find()) {
+            petalCount++;
+        }
+        assertEquals(13, petalCount);
     }
 }

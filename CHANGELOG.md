@@ -2,6 +2,7 @@
 
 ## 1.7.0 - 2026-08-21
 
+- Added the approved 13-petal purple-lotus ocean artwork as the Android launcher, Play Store, launch, and completion image.
 - Fixed individual meditation-log selection so Delete selected enables immediately.
 - Added Quick 5 minute, Regular 30 minute, A good weekly 60 minute, and saved Custom configurations, including cue sound and display choices.
 - Strengthened restore to preserve existing logs/resolutions and reject content-identical duplicates even when IDs differ.

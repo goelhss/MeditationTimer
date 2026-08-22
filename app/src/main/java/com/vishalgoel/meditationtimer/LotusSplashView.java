@@ -24,8 +24,8 @@ public final class LotusSplashView {
         root.setBackgroundColor(Color.rgb(23, 15, 36));
 
         ImageView lotus = new ImageView(context);
-        lotus.setImageResource(R.drawable.lotus_splash);
-        lotus.setContentDescription("Lotus");
+        lotus.setImageResource(R.drawable.lotus_ocean_13_petals);
+        lotus.setContentDescription("Purple 13-petal lotus over the ocean");
         lotus.setAdjustViewBounds(true);
         root.addView(lotus, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(context, 330)));

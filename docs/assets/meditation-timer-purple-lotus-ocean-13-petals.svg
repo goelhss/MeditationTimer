@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#10072b"/>
+      <stop offset="0.48" stop-color="#442267"/>
+      <stop offset="0.72" stop-color="#a866a4"/>
+      <stop offset="1" stop-color="#f0a6b7"/>
+    </linearGradient>
+    <radialGradient id="horizonGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffd7db" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#ffd7db" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ocean" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a477f"/>
+      <stop offset="0.32" stop-color="#28285a"/>
+      <stop offset="1" stop-color="#090d2b"/>
+    </linearGradient>
+    <linearGradient id="petalLight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0c7ff"/>
+      <stop offset="0.38" stop-color="#b757e8"/>
+      <stop offset="1" stop-color="#55148c"/>
+    </linearGradient>
+    <linearGradient id="petalMid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d99bff"/>
+      <stop offset="0.48" stop-color="#8424bd"/>
+      <stop offset="1" stop-color="#3c0867"/>
+    </linearGradient>
+    <linearGradient id="petalDeep" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ae61de"/>
+      <stop offset="0.52" stop-color="#66119b"/>
+      <stop offset="1" stop-color="#2b064b"/>
+    </linearGradient>
+    <linearGradient id="petalFront" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e9b2ff"/>
+      <stop offset="0.5" stop-color="#9f36cf"/>
+      <stop offset="1" stop-color="#4d0a78"/>
+    </linearGradient>
+    <linearGradient id="reflection" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d88dff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#7e30a8" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="lotusGlow" x="-45%" y="-45%" width="190%" height="190%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softBlur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="petalShadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="9" stdDeviation="8" flood-color="#140321" flood-opacity="0.65"/>
+    </filter>
+    <clipPath id="frame"><rect width="1024" height="1024"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#frame)">
+    <rect width="1024" height="1024" fill="url(#sky)"/>
+    <ellipse cx="512" cy="430" rx="465" ry="230" fill="url(#horizonGlow)"/>
+
+    <path d="M0 435 C132 414 228 454 351 437 C486 418 601 448 720 430 C835 413 924 428 1024 444 L1024 1024 L0 1024Z" fill="url(#ocean)"/>
+    <path d="M0 481 C138 448 260 503 393 471 C527 438 645 495 765 466 C872 441 945 467 1024 486" fill="none" stroke="#d6d7ff" stroke-opacity="0.35" stroke-width="9"/>
+    <path d="M-20 548 C119 509 237 568 379 536 C506 507 624 562 748 527 C859 496 948 528 1044 548" fill="none" stroke="#9da7d9" stroke-opacity="0.3" stroke-width="8"/>
+    <path d="M-25 631 C105 592 225 647 353 618 C496 586 618 650 763 610 C881 578 958 616 1049 633" fill="none" stroke="#8b8fc1" stroke-opacity="0.25" stroke-width="11"/>
+    <path d="M-30 730 C99 692 207 750 348 715 C493 679 624 755 762 707 C876 668 961 708 1054 731" fill="none" stroke="#7779a8" stroke-opacity="0.22" stroke-width="13"/>
+
+    <path d="M455 488 C478 463 545 461 570 488 C551 507 474 509 455 488Z" fill="#fff" opacity="0.18" filter="url(#softBlur)"/>
+    <path d="M458 528 L566 528 L630 1004 L394 1004Z" fill="url(#reflection)" opacity="0.42" filter="url(#softBlur)"/>
+    <path d="M385 832 C455 810 575 810 644 833 C592 857 436 858 385 832Z" fill="#c065e7" opacity="0.24" filter="url(#softBlur)"/>
+
+    <!-- Lotus: exactly 13 discrete petals, numbered from back to front. -->
+    <g stroke="#f4d9ff" stroke-opacity="0.48" stroke-width="3" stroke-linejoin="round" filter="url(#petalShadow)">
+      <!-- 1: far-left back petal -->
+      <path d="M506 772 C391 763 284 705 225 616 C337 611 428 654 506 746Z" fill="url(#petalDeep)"/>
+      <!-- 2: left back petal -->
+      <path d="M507 758 C408 716 347 625 337 520 C431 565 483 637 507 733Z" fill="url(#petalMid)"/>
+      <!-- 3: upper-left petal -->
+      <path d="M510 739 C435 661 418 551 457 447 C522 520 540 624 510 739Z" fill="url(#petalLight)"/>
+      <!-- 4: central crown petal -->
+      <path d="M512 718 C466 619 477 500 512 386 C547 500 558 619 512 718Z" fill="url(#petalLight)"/>
+      <!-- 5: upper-right petal -->
+      <path d="M514 739 C589 661 606 551 567 447 C502 520 484 624 514 739Z" fill="url(#petalLight)"/>
+      <!-- 6: right back petal -->
+      <path d="M517 758 C616 716 677 625 687 520 C593 565 541 637 517 733Z" fill="url(#petalMid)"/>
+      <!-- 7: far-right back petal -->
+      <path d="M518 772 C633 763 740 705 799 616 C687 611 596 654 518 746Z" fill="url(#petalDeep)"/>
+
+      <!-- 8: left middle petal -->
+      <path d="M511 770 C413 773 322 736 260 674 C365 666 443 692 511 750Z" fill="url(#petalMid)"/>
+      <!-- 9: inner-left petal -->
+      <path d="M512 763 C451 718 416 648 410 568 C478 605 515 667 512 763Z" fill="url(#petalFront)"/>
+      <!-- 10: inner-right petal -->
+      <path d="M512 763 C573 718 608 648 614 568 C546 605 509 667 512 763Z" fill="url(#petalFront)"/>
+      <!-- 11: right middle petal -->
+      <path d="M513 770 C611 773 702 736 764 674 C659 666 581 692 513 750Z" fill="url(#petalMid)"/>
+
+      <!-- 12: front-left petal -->
+      <path d="M512 762 C438 749 369 760 307 798 C368 848 445 855 512 816Z" fill="url(#petalFront)"/>
+      <!-- 13: front-right petal -->
+      <path d="M512 762 C586 749 655 760 717 798 C656 848 579 855 512 816Z" fill="url(#petalFront)"/>
+    </g>
+
+    <ellipse cx="512" cy="836" rx="236" ry="32" fill="#b44ed8" opacity="0.33" filter="url(#lotusGlow)"/>
+    <path d="M319 852 C426 872 600 872 705 852" fill="none" stroke="#edd6ff" stroke-opacity="0.35" stroke-width="7" stroke-linecap="round"/>
+  </g>
+
+</svg>

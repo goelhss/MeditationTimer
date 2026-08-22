@@ -10,6 +10,7 @@
 ## Timer tab
 
 - The app opens with a large lotus launch image, app name, and calm message. The launch screen has no visible countdown.
+- Use the approved purple lotus with exactly 13 petals over an ocean background for the launcher/Play Store icon and in-app lotus imagery.
 - Meditation duration defaults to 60 minutes.
 - Provide a “What do you want to do today?” selector with Quick 5 minutes, Regular 30 minutes, A good weekly 60 minutes, and Custom.
 - Selecting a built-in configuration fills all timer/cue controls. Allow the current values to be explicitly saved as the Custom configuration, including duration, preparation, ding frequencies, finish count, chime/vibration/dim choices, chime sound, and timer display.
