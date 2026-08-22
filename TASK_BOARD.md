@@ -1,8 +1,21 @@
 # Task Board
 
+## 1.8.0 additive checklist — 2026-08-22
+
+- [x] Simplify every tab without removing its actions.
+- [x] Reduce Backup & Restore to crisp Google Drive and file controls; hide technical JSON/size explanations from the main screen.
+- [x] Remove elapsed time and interval/chime summaries from the running timer.
+- [x] Enlarge the digital `Time left` display.
+- [x] Refresh visible timer and notification values once per minute while preserving exact cue/completion alarms.
+- [x] Show the analog timer as a full-session clock: elapsed arc in calm dark purple and remaining arc in light orange.
+- [x] Regenerate and inspect the concise settings and running-timer Play screenshots.
+- [x] Run always-required, UI, timing, full unit-test, lint, and signed-AAB validation.
+- [x] Reconcile this checklist with the visible task plan before commit, push, or Play submission.
+- [ ] Replace the staged 1.7.0 Play draft with tested 1.8.0 only after final action confirmation.
+
 ## In progress
 
-- 2026-08-21: Before publishing 1.7.0, update the Play Console foreground-service declaration to the truthfully described meditation-countdown `specialUse` type.
+- Before publishing 1.8.0, update the Play Console foreground-service declaration to the truthfully described meditation-countdown `specialUse` type.
 - Before any Play submission on or after 2026-08-31: install the Android 16 SDK, upgrade the compatible Android build toolchain, target API 36, and rerun full/device tests.
 - 2026-08-21: Grant the Play API service account app-level access and verify the narrow one-command internal publisher.
 - 2026-08-18: Run the first physical-phone smoke test from the Google Play internal-testing install.

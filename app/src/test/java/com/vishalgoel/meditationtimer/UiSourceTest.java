@@ -33,20 +33,25 @@ public final class UiSourceTest {
         assertTrue(configurationStore.contains("getBoolean(prefix + \"dim\", true)"));
         assertTrue(configurationStore.contains("getBoolean(prefix + \"chimes\", true)"));
         assertTrue(configurationStore.contains("getBoolean(prefix + \"vibrate\", false)"));
-        assertTrue(source.contains("What do you want to do today?"));
-        assertTrue(source.contains("Save as the Custom configuration"));
+        assertTrue(source.contains("labeledControl(\"Today\", preset)"));
+        assertTrue(source.contains("Save as Custom"));
         assertTrue(source.contains("configurationStore.saveCustom"));
         assertTrue(source.contains("Ding sound"));
         assertTrue(source.contains("chimeSoundSpinner"));
-        assertTrue(source.contains("Timer display"));
+        assertTrue(source.contains("Timer style"));
         assertTrue(source.contains("timerDisplaySpinner"));
         assertTrue(source.contains("new AnalogTimerView"));
-        assertTrue(source.contains("Live cues"));
+        assertTrue(source.contains("countdownView.setTextSize(96)"));
+        assertTrue(source.contains("Time left"));
         assertTrue(source.contains("sendCueMode"));
         assertTrue(source.contains("sendDimMode"));
         assertTrue(source.contains("optionCheckBox(\"Dim\", state.dimScreen)"));
-        assertTrue(source.contains("Turn both cue switches off for silence"));
-        assertTrue(source.contains("Elapsed \" + MeditationTimerService.formatCountdown"));
+        assertFalse(source.contains("Live cues"));
+        assertFalse(source.contains("Turn both cue switches off for silence"));
+        assertFalse(source.contains("Elapsed \" + MeditationTimerService.formatCountdown"));
+        assertFalse(source.contains("Primary ding every"));
+        assertFalse(source.contains("Google receives one private app-data JSON file"));
+        assertFalse(source.contains("Portable JSON file"));
         assertTrue(source.contains("Well done."));
         assertTrue(source.contains("R.drawable.lotus_ocean_13_petals"));
         assertTrue(source.contains("renderResolution"));
@@ -58,7 +63,7 @@ public final class UiSourceTest {
         assertTrue(source.contains("Use streak encouragement in reminders"));
         assertTrue(source.contains("Pause streak — going on vacation"));
         assertTrue(source.contains("Streak reset to 1. Good luck this time."));
-        assertTrue(source.contains("Longest streak ever:"));
+        assertTrue(source.contains(" · Best "));
         assertTrue(source.contains("updateSelectionActions.run()"));
     }
 
@@ -67,10 +72,11 @@ public final class UiSourceTest {
         String source = TestSources.read(
                 "app/src/main/java/com/vishalgoel/meditationtimer/MainActivity.java");
 
-        assertTrue(source.contains("Background color"));
+        assertTrue(source.contains("bodyText(\"Background\")"));
         assertTrue(source.contains("Check for Updates"));
-        assertTrue(source.contains("What’s new in 1.7.0"));
+        assertTrue(source.contains("What’s new in 1.8.0"));
         assertTrue(source.contains("Share Debug logs"));
+        assertTrue(source.contains("View change-log"));
         assertTrue(source.contains("View MIT License"));
         assertTrue(source.contains("LotusSplashView.create"));
         assertFalse(source.contains("MindfulSplashView.create"));

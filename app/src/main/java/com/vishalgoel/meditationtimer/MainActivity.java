@@ -87,6 +87,7 @@ public final class MainActivity extends Activity {
     private static final int BACKUP_EXPORT_REQUEST = 403;
     private static final int BACKUP_IMPORT_REQUEST = 404;
     private static final float DIM_BRIGHTNESS = 0.08f;
+    private static final long UI_REFRESH_MS = 60_000L;
     private static final Scope DRIVE_APPDATA_SCOPE = new Scope(
             "https://www.googleapis.com/auth/drive.appdata");
 
@@ -107,7 +108,6 @@ public final class MainActivity extends Activity {
     private TextView countdownView;
     private AnalogTimerView analogTimerView;
     private TextView activeStatusView;
-    private TextView activeProgressView;
     private String selectedTab = TAB_TIMER;
     private boolean mainUiShown;
     private boolean receiverRegistered;
@@ -144,23 +144,22 @@ public final class MainActivity extends Activity {
                 long remaining = state.preparing ? state.preparationRemainingMs(realtime)
                         : state.remainingMs(realtime);
                 if (countdownView != null) {
-                    countdownView.setText(MeditationTimerService.formatCountdown(remaining));
+                    countdownView.setText(state.preparing
+                            ? MeditationTimerService.formatCountdown(remaining)
+                            : MeditationTimerService.formatMinuteCountdown(remaining));
                 }
                 if (analogTimerView != null) {
                     analogTimerView.setTime(remaining, state.durationMs);
                 }
                 activeStatusView.setText(state.preparing
                         ? (state.paused ? "Preparation paused" : "Get ready")
-                        : (state.paused ? "Paused" : "Meditating"));
-                if (activeProgressView != null) {
-                    activeProgressView.setText(progressText(state, realtime));
-                }
+                        : (state.paused ? "Paused" : "Time left"));
                 applyScreenMode(state);
             }
             new PendingMeditationStore(MainActivity.this)
                     .applyDefaultIfDue(System.currentTimeMillis());
             showPendingLogPromptIfNeeded();
-            handler.postDelayed(this, 1000L);
+            handler.postDelayed(this, UI_REFRESH_MS);
         }
     };
 
@@ -262,7 +261,6 @@ public final class MainActivity extends Activity {
         countdownView = null;
         analogTimerView = null;
         activeStatusView = null;
-        activeProgressView = null;
         updateTabStyles();
         if (TAB_LOGS.equals(selectedTab)) {
             renderLogs();
@@ -321,8 +319,6 @@ public final class MainActivity extends Activity {
         MeditationPreset selectedPreset = configurationStore.selectedPreset();
         MeditationConfiguration initial = selectedPreset.resolve(configurationStore.custom());
         LinearLayout form = pageColumn();
-        form.addView(sectionTitle("Set your meditation"), matchWrap());
-
         MeditationPreset[] presets = MeditationPreset.values();
         ArrayAdapter<MeditationPreset> presetAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_item, presets);
@@ -330,18 +326,18 @@ public final class MainActivity extends Activity {
         Spinner preset = new Spinner(this);
         preset.setAdapter(presetAdapter);
         preset.setSelection(selectedPreset.ordinal(), false);
-        form.addView(labeledControl("What do you want to do today?", preset));
+        form.addView(labeledControl("Today", preset));
 
         EditText duration = numberField(initial.durationMinutes());
         EditText primary = numberField(initial.primaryMinutes());
         EditText additional = numberField(initial.additionalMinutes());
         EditText finish = numberField(initial.finishDings());
         EditText prep = numberField(initial.preparationSeconds());
-        form.addView(labeledField("Meditation duration (minutes)", duration));
-        form.addView(labeledField("Preparation time (seconds)", prep));
-        form.addView(labeledField("One ding every (minutes)", primary));
-        form.addView(labeledField("One additional ding every (minutes)", additional));
-        form.addView(labeledField("Dings when finished", finish));
+        form.addView(labeledField("Duration (min)", duration));
+        form.addView(labeledField("Prep time (sec)", prep));
+        form.addView(labeledField("Ding every (min)", primary));
+        form.addView(labeledField("Extra ding every (min)", additional));
+        form.addView(labeledField("Finish dings", finish));
 
         CheckBox chimes = optionCheckBox("Chimes", initial.chimes());
         CheckBox vibrate = optionCheckBox("Vibrate", initial.vibrate());
@@ -360,10 +356,10 @@ public final class MainActivity extends Activity {
         form.addView(chimes, matchWrap());
         form.addView(vibrate, matchWrap());
         form.addView(labeledControl("Ding sound", chimeSound));
-        form.addView(labeledControl("Timer display", timerDisplay));
+        form.addView(labeledControl("Timer style", timerDisplay));
 
         CheckBox dim = new CheckBox(this);
-        dim.setText("Dim screen while countdown is visible");
+        dim.setText("Dim screen");
         dim.setTextSize(16);
         dim.setTextColor(primaryTextColor());
         dim.setChecked(initial.dim());
@@ -396,7 +392,7 @@ public final class MainActivity extends Activity {
             public void onNothingSelected(android.widget.AdapterView<?> parent) {}
         });
 
-        Button saveCustom = actionButton("Save as the Custom configuration", false);
+        Button saveCustom = actionButton("Save as Custom", false);
         saveCustom.setOnClickListener(view -> {
             try {
                 MeditationConfiguration custom = readConfiguration(duration, prep, primary,
@@ -473,7 +469,7 @@ public final class MainActivity extends Activity {
         activeStatusView = new TextView(this);
         activeStatusView.setText(state.preparing
                 ? (state.paused ? "Preparation paused" : "Get ready")
-                : (state.paused ? "Paused" : "Meditating"));
+                : (state.paused ? "Paused" : "Time left"));
         activeStatusView.setTextSize(20);
         activeStatusView.setTextColor(accentTextColor());
         activeStatusView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
@@ -487,48 +483,32 @@ public final class MainActivity extends Activity {
             analogTimerView.setTime(state.remainingMs(SystemClock.elapsedRealtime()),
                     state.durationMs);
             clockParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                    dp(340));
+                    dp(430));
         } else {
             countdownView = new TextView(this);
-            countdownView.setText(MeditationTimerService.formatCountdown(
-                    state.preparing
-                            ? state.preparationRemainingMs(SystemClock.elapsedRealtime())
-                            : state.remainingMs(SystemClock.elapsedRealtime())));
-            countdownView.setTextSize(58);
+            long visibleRemaining = state.preparing
+                    ? state.preparationRemainingMs(SystemClock.elapsedRealtime())
+                    : state.remainingMs(SystemClock.elapsedRealtime());
+            countdownView.setText(state.preparing
+                    ? MeditationTimerService.formatCountdown(visibleRemaining)
+                    : MeditationTimerService.formatMinuteCountdown(visibleRemaining));
+            countdownView.setTextSize(96);
             countdownView.setTextColor(Color.rgb(22, 58, 107));
             countdownView.setTypeface(Typeface.create("sans-serif-condensed", Typeface.BOLD));
             countdownView.setGravity(Gravity.CENTER);
-            countdownView.setPadding(dp(8), dp(42), dp(8), dp(42));
+            countdownView.setPadding(dp(8), dp(72), dp(8), dp(72));
             GradientDrawable clockBackground = new GradientDrawable();
             clockBackground.setCornerRadius(dp(28));
             clockBackground.setColor(Color.rgb(221, 238, 255));
             clockBackground.setStroke(dp(2), Color.rgb(56, 108, 176));
             countdownView.setBackground(clockBackground);
-            clockParams = fullButtonParams();
+            clockParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                    dp(430));
         }
         clockParams.topMargin = dp(18);
         clockParams.bottomMargin = dp(18);
         page.addView(analogTimerView != null ? analogTimerView : countdownView, clockParams);
 
-        activeProgressView = bodyText(progressText(state, SystemClock.elapsedRealtime()));
-        activeProgressView.setTextSize(18);
-        activeProgressView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        activeProgressView.setGravity(Gravity.CENTER);
-        activeProgressView.setPadding(0, 0, 0, dp(12));
-        page.addView(activeProgressView, matchWrap());
-
-        TextView detail = bodyText("Preparation: " + state.prepDurationMs / 1000L + " sec"
-                + "\nPrimary ding every " + state.primaryMs / TimerSchedule.MINUTE_MS
-                + " min · additional ding every " + state.additionalMs / TimerSchedule.MINUTE_MS
-                + " min\nCompletion: " + state.finishDings + " dings"
-                + " · " + cueModeLabel(state.chimesEnabled, state.vibrationEnabled)
-                + (state.chimesEnabled ? " · " + ChimeSound.fromId(state.chimeSoundId).label() : "")
-                + " · " + TimerDisplayMode.fromId(state.displayModeId).label()
-                + (state.dimScreen ? " · screen dimming on" : ""));
-        detail.setGravity(Gravity.CENTER);
-        page.addView(detail, matchWrap());
-
-        page.addView(subsectionTitle("Live cues"), matchWrap());
         LinearLayout cueControls = new LinearLayout(this);
         cueControls.setOrientation(LinearLayout.HORIZONTAL);
         CheckBox liveChimes = optionCheckBox("Chimes", state.chimesEnabled);
@@ -544,9 +524,6 @@ public final class MainActivity extends Activity {
         cueControls.addView(liveVibrate, weighted());
         cueControls.addView(liveDim, weighted());
         page.addView(cueControls, matchWrap());
-        TextView cueHint = bodyText("Changes take effect immediately. Turn both cue switches off for silence.");
-        cueHint.setGravity(Gravity.CENTER);
-        page.addView(cueHint, matchWrap());
 
         LinearLayout controls = new LinearLayout(this);
         controls.setOrientation(LinearLayout.HORIZONTAL);
@@ -586,20 +563,19 @@ public final class MainActivity extends Activity {
     private void renderLogs() {
         restoreScreenMode();
         LinearLayout page = pageColumn();
-        page.addView(sectionTitle("Meditation Logs"), matchWrap());
+        page.addView(sectionTitle("Logs"), matchWrap());
         List<MeditationLog> logs = new MeditationLogStore(this).all();
         StreakStore.Snapshot streak = new StreakStore(this).snapshot(logs,
                 System.currentTimeMillis(), java.time.ZoneId.systemDefault());
         String streakSummary = streak.countingEnabled()
-                ? "Current streak: " + streak.streak().currentDays()
-                + " days\nLongest streak ever: " + streak.streak().bestDays() + " days"
-                : "Streak counting: Off\nLongest streak previously recorded: "
-                + streak.streak().bestDays() + " days";
+                ? "Current " + streak.streak().currentDays()
+                + " days · Best " + streak.streak().bestDays() + " days"
+                : "Streaks off · Best " + streak.streak().bestDays() + " days";
         TextView streakCard = bodyText(streakSummary);
         streakCard.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        streakCard.setPadding(dp(12), dp(12), dp(12), dp(12));
-        streakCard.setBackground(cardBackground(Color.WHITE));
-        page.addView(streakCard, fullButtonParams());
+        streakCard.setGravity(Gravity.CENTER);
+        streakCard.setPadding(0, 0, 0, dp(10));
+        page.addView(streakCard, matchWrap());
         Set<String> available = new HashSet<>();
         for (MeditationLog log : logs) {
             available.add(log.id());
@@ -682,7 +658,7 @@ public final class MainActivity extends Activity {
     private void renderStats() {
         restoreScreenMode();
         LinearLayout page = pageColumn();
-        page.addView(sectionTitle("Meditation Stats"), matchWrap());
+        page.addView(sectionTitle("Stats"), matchWrap());
         List<MeditationLog> logs = new MeditationLogStore(this).all();
         long now = System.currentTimeMillis();
         StreakStore streakStore = new StreakStore(this);
@@ -726,9 +702,8 @@ public final class MainActivity extends Activity {
                     + streak.graceDaysRemaining() + " grace day"
                     + (streak.graceDaysRemaining() == 1 ? "" : "s") + " remaining";
         }
-        TextView streakCard = bodyText(streakText + "\nLongest streak ever: "
-                + streak.bestDays() + " days\n\nOne meditation day increases the tally once. "
-                + "The streak resets after three full days of inactivity.");
+        TextView streakCard = bodyText(streakText + " · Best "
+                + streak.bestDays() + " days");
         streakCard.setTextSize(18);
         streakCard.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         streakCard.setPadding(dp(14), dp(14), dp(14), dp(14));
@@ -752,17 +727,15 @@ public final class MainActivity extends Activity {
             LinearLayout.LayoutParams vacationParams = fullButtonParams();
             vacationParams.topMargin = dp(10);
             page.addView(vacation, vacationParams);
-            TextView vacationHelp = bodyText((streak.currentDays() == 0
-                    ? "Start a streak before using vacation pause. " : "")
-                    + "A vacation pause lasts for at most 30 days. "
-                    + "Open Meditation Timer within that time to preserve and resume your streak. "
-                    + "After 30 days, it restarts gently at 1.");
+            TextView vacationHelp = bodyText(streak.currentDays() == 0
+                    ? "Start a streak first. Pauses last up to 30 days."
+                    : "Pauses last up to 30 days.");
             vacationHelp.setTextSize(13);
             vacationHelp.setPadding(0, dp(6), 0, 0);
             page.addView(vacationHelp, matchWrap());
         }
 
-        TextView encouragement = bodyText("For emotional, spiritual, and long-term well-being:\nGrow old with a healthy soul. Meditate daily.");
+        TextView encouragement = bodyText("Grow old with a healthy soul. Meditate daily.");
         encouragement.setTextColor(Color.rgb(87, 56, 158));
         encouragement.setGravity(Gravity.CENTER);
         encouragement.setPadding(0, dp(14), 0, dp(14));
@@ -813,27 +786,13 @@ public final class MainActivity extends Activity {
         chartParams.topMargin = dp(12);
         page.addView(chart, chartParams);
 
-        StringBuilder accessibleBreakdown = new StringBuilder();
-        for (MeditationStats.Bucket bucket : report.buckets()) {
-            if (accessibleBreakdown.length() > 0) {
-                accessibleBreakdown.append(" · ");
-            }
-            accessibleBreakdown.append(bucket.label()).append(": ")
-                    .append(LogTextExporter.formatDuration(bucket.durationMs()));
-        }
-        TextView breakdown = bodyText(accessibleBreakdown.toString());
-        breakdown.setTextSize(13);
-        breakdown.setGravity(Gravity.CENTER);
-        page.addView(breakdown, matchWrap());
         content.addView(scroll(page), fill());
     }
 
     private void renderResolution() {
         restoreScreenMode();
         LinearLayout page = pageColumn();
-        page.addView(sectionTitle("Resolution"), matchWrap());
-        page.addView(bodyText("Record the promises you have made to your meditation practice, so you can return to them later."),
-                matchWrap());
+        page.addView(sectionTitle("Resolutions"), matchWrap());
 
         Calendar selectedDate = Calendar.getInstance();
         selectedDate.set(Calendar.HOUR_OF_DAY, 12);
@@ -926,9 +885,7 @@ public final class MainActivity extends Activity {
         restoreScreenMode();
         ReminderSchedule saved = new ReminderStore(this).load();
         LinearLayout page = pageColumn();
-        page.addView(sectionTitle("Meditation Reminder"), matchWrap());
-        page.addView(bodyText("Choose when Android should gently remind you to meditate and maintain your streak. Grow old with a healthy soul. Meditate daily."),
-                matchWrap());
+        page.addView(sectionTitle("Reminder"), matchWrap());
 
         CheckBox enabled = optionCheckBox("Remind me to meditate", saved.enabled());
         LinearLayout.LayoutParams enabledParams = matchWrap();
@@ -937,7 +894,7 @@ public final class MainActivity extends Activity {
 
         StreakStore streakStore = new StreakStore(this);
         CheckBox streakEncouragement = optionCheckBox(
-                "Include streak encouragement in reminders",
+                "Streak encouragement",
                 streakStore.load().reminderEnabled());
         streakEncouragement.setOnCheckedChangeListener((button, checked) ->
                 streakStore.setReminderEnabled(checked));
@@ -1113,21 +1070,18 @@ public final class MainActivity extends Activity {
         BackupStatusStore status = new BackupStatusStore(this);
         LinearLayout page = pageColumn();
         page.addView(sectionTitle("Backup & Restore"), matchWrap());
-        page.addView(bodyText("Save meditation logs, resolutions, timer settings, reminders, and streak preferences/history. Active timers and diagnostics are never included."),
-                matchWrap());
-
-        page.addView(subsectionTitle("Private Google Drive backup"), matchWrap());
+        page.addView(subsectionTitle("Google Drive"), matchWrap());
         String connection = status.isGoogleConnected()
                 ? "Connected to Google Drive" : "Not connected";
         String lastBackup = status.lastSuccessMs() > 0L
                 ? formatBackupTime(status.lastSuccessMs()) : "Never";
         String error = status.lastError();
-        page.addView(bodyText(connection + "\nLast successful backup: " + lastBackup
+        page.addView(bodyText(connection + " · Last backup: " + lastBackup
                 + (status.isRestoreDecisionRequired()
-                        ? "\nA Drive backup is waiting for your restore decision." : "")
+                        ? " · Restore available" : "")
                 + (error == null || error.isBlank() ? "" : "\nLast issue: " + error)), matchWrap());
 
-        CheckBox automatic = optionCheckBox("Back up automatically when the app is open",
+        CheckBox automatic = optionCheckBox("Automatic backup",
                 status.isAutoBackupEnabled());
         automatic.setOnCheckedChangeListener((button, checked) -> {
             status.setAutoBackupEnabled(checked);
@@ -1136,11 +1090,8 @@ public final class MainActivity extends Activity {
             }
         });
         page.addView(automatic, matchWrap());
-        page.addView(bodyText("Google receives one private app-data JSON file, capped at 1 MB. Its location and filename are managed automatically; you never need to choose a Drive folder. Each backup replaces the previous one."),
-                matchWrap());
-
         Button connect = actionButton(status.isGoogleConnected()
-                ? "Reconnect or change Google account" : "Connect Google Drive", true);
+                ? "Change Google account" : "Connect Google Drive", true);
         connect.setEnabled(!backupOperationRunning);
         connect.setOnClickListener(view -> authorizeGoogle(GoogleAction.CONNECT));
         LinearLayout.LayoutParams connectParams = fullButtonParams();
@@ -1188,14 +1139,12 @@ public final class MainActivity extends Activity {
         deleteCloudParams.topMargin = dp(8);
         page.addView(deleteCloud, deleteCloudParams);
 
-        page.addView(subsectionTitle("Portable JSON file"), matchWrap());
-        page.addView(bodyText("Export creates a readable file in a location you choose. Anyone who can access that file can read its meditation history and resolutions."),
-                matchWrap());
+        page.addView(subsectionTitle("File backup"), matchWrap());
         LinearLayout fileActions = new LinearLayout(this);
         fileActions.setOrientation(LinearLayout.HORIZONTAL);
-        Button export = actionButton("Export file", false);
+        Button export = actionButton("Save file", false);
         export.setOnClickListener(view -> startBackupExport());
-        Button importFile = actionButton("Import file", false);
+        Button importFile = actionButton("Restore file", false);
         importFile.setOnClickListener(view -> startBackupImport());
         fileActions.addView(export, weighted());
         fileActions.addView(importFile, weighted());
@@ -1353,9 +1302,7 @@ public final class MainActivity extends Activity {
         new AlertDialog.Builder(this)
                 .setTitle("Restore from " + source + "?")
                 .setMessage("Backup date: " + created
-                        + "\nMeditation logs: " + snapshot.logs().size()
-                        + "\nResolutions: " + snapshot.resolutions().size()
-                        + "\n\nLogs and resolutions will be merged without duplicates. Timer, reminder, and streak preferences will be replaced; the greater longest-ever streak is kept.")
+                        + "\n\nExisting logs and resolutions stay; duplicates are skipped. Settings are replaced.")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Restore", (dialog, which) -> {
                     BackupRepository.RestoreResult result =
@@ -1419,15 +1366,15 @@ public final class MainActivity extends Activity {
         restoreScreenMode();
         LinearLayout page = pageColumn();
         page.addView(sectionTitle("About"), matchWrap());
-        page.addView(bodyText("Meditation Timer\nVersion " + BuildConfig.VERSION_NAME
+        page.addView(bodyText("Version " + BuildConfig.VERSION_NAME
                 + " · build " + BuildConfig.VERSION_CODE
-                + "\nAuthor: Vishal Goel\nLicense: MIT"), matchWrap());
+                + " · MIT · Vishal Goel"), matchWrap());
 
         page.addView(subsectionTitle("Appearance"), matchWrap());
         LinearLayout appearanceRow = new LinearLayout(this);
         appearanceRow.setOrientation(LinearLayout.HORIZONTAL);
         appearanceRow.setGravity(Gravity.CENTER_VERTICAL);
-        TextView appearanceLabel = bodyText("Background color");
+        TextView appearanceLabel = bodyText("Background");
         appearanceRow.addView(appearanceLabel, new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         Spinner appearance = colorThemeSpinner();
@@ -1441,29 +1388,19 @@ public final class MainActivity extends Activity {
         updateParams.topMargin = dp(14);
         page.addView(update, updateParams);
 
-        page.addView(subsectionTitle("Background status"), matchWrap());
-        TimerState state = new TimerStateStore(this).load();
-        ReminderSchedule reminder = new ReminderStore(this).load();
-        page.addView(bodyText("Timer: " + (state.active
-                        ? (state.paused ? "paused" : "running") : "inactive")
-                + "\nReminder: " + (reminder.enabled()
-                        ? reminder.frequency().label() + " at "
-                                + formatClockTime(reminder.hour(), reminder.minute())
-                        : "off")
-                + "\nNotifications: " + (notificationsAllowed() ? "allowed" : "not allowed")
-                + "\nExact alarms: " + (exactAlarmsAllowed() ? "allowed" : "not allowed")
-                + "\nThe timer uses an ongoing notification and never forces itself over the lock screen."),
-                matchWrap());
+        Button systemStatus = actionButton("System status", false);
+        systemStatus.setOnClickListener(view -> showSystemStatus());
+        LinearLayout.LayoutParams statusParams = fullButtonParams();
+        statusParams.topMargin = dp(8);
+        page.addView(systemStatus, statusParams);
 
         page.addView(subsectionTitle("Diagnostics"), matchWrap());
         DiagnosticsStore diagnostics = new DiagnosticsStore(this);
-        page.addView(bodyText(diagnostics.summary()), matchWrap());
         Button shareDiagnostics = actionButton("Share Debug logs", false);
         shareDiagnostics.setOnClickListener(view -> shareTextFile(
                 "meditation-timer-v" + BuildConfig.VERSION_CODE + "-diagnostics.txt",
                 diagnostics.export(BuildConfig.VERSION_NAME + " (" + BuildConfig.VERSION_CODE + ")"),
                 "Share Meditation Timer Diagnostics"));
-        page.addView(shareDiagnostics, fullButtonParams());
         Button clearDiagnostics = actionButton("Clear Debug logs", false);
         clearDiagnostics.setOnClickListener(view -> new AlertDialog.Builder(this)
                 .setTitle("Clear diagnostics?")
@@ -1473,28 +1410,17 @@ public final class MainActivity extends Activity {
                     diagnostics.clear();
                     renderSelectedTab();
                 }).show());
-        LinearLayout.LayoutParams clearParams = fullButtonParams();
-        clearParams.topMargin = dp(8);
-        page.addView(clearDiagnostics, clearParams);
+        LinearLayout diagnosticActions = new LinearLayout(this);
+        diagnosticActions.setOrientation(LinearLayout.HORIZONTAL);
+        diagnosticActions.addView(shareDiagnostics, weighted());
+        diagnosticActions.addView(clearDiagnostics, weighted());
+        page.addView(diagnosticActions, matchWrap());
 
-        page.addView(subsectionTitle("Version history"), matchWrap());
-        page.addView(bodyText("1.7.0 · August 21, 2026\n"
-                + "Session presets and saved Custom configuration, working individual log deletion, additive deduplicated restore, meditation charts, optional streak controls, persistent longest-ever history, a 30-day vacation pause, and new 13-petal purple-lotus ocean artwork.\n\n"
-                + "1.6.0 · August 21, 2026\n"
-                + "Private Google Drive backup, portable JSON export/import, restore safeguards, and explicit backup deletion.\n\n"
-                + "1.5.0 · August 21, 2026\n"
-                + "Meditation Bowl, preparation countdown, visible elapsed time, a Well done lotus, and meditation resolutions.\n\n"
-                + "1.4.0 · August 18, 2026\n"
-                + "Live Dim control joins the running-session Chimes and Vibrate controls.\n\n"
-                + "1.3.0 · August 18, 2026\n"
-                + "Live Chimes and Vibrate controls, including silent mode during a running session.\n\n"
-                + "1.2.0 · August 18, 2026\n"
-                + "Resonant sound choices plus large digital and analog timer displays.\n\n"
-                + "1.1.0 · August 18, 2026\n"
-                + "Large lotus launch screen, chime/vibration modes, and configurable meditation reminders.\n\n"
-                + "1.0.0 · August 18, 2026\n"
-                + "Timer, overlapping interval dings, screen-locked operation, completion prompt, logs, sharing, and diagnostics."),
-                matchWrap());
+        Button changelog = actionButton("View change-log", false);
+        changelog.setOnClickListener(view -> showChangelog());
+        LinearLayout.LayoutParams changelogParams = fullButtonParams();
+        changelogParams.topMargin = dp(14);
+        page.addView(changelog, changelogParams);
 
         Button license = actionButton("View MIT License", false);
         license.setOnClickListener(view -> showLicense());
@@ -1504,6 +1430,54 @@ public final class MainActivity extends Activity {
         content.addView(scroll(page), fill());
     }
 
+    private void showSystemStatus() {
+        TimerState state = new TimerStateStore(this).load();
+        ReminderSchedule reminder = new ReminderStore(this).load();
+        new AlertDialog.Builder(this)
+                .setTitle("System status")
+                .setMessage("Timer: " + (state.active
+                                ? (state.paused ? "paused" : "running") : "inactive")
+                        + "\nReminder: " + (reminder.enabled()
+                                ? reminder.frequency().label() + " at "
+                                        + formatClockTime(reminder.hour(), reminder.minute())
+                                : "off")
+                        + "\nNotifications: "
+                        + (notificationsAllowed() ? "allowed" : "not allowed")
+                        + "\nExact alarms: "
+                        + (exactAlarmsAllowed() ? "allowed" : "not allowed"))
+                .setPositiveButton("Close", null)
+                .show();
+    }
+
+    private void showChangelog() {
+        TextView text = bodyText("1.8.0 · August 22, 2026\n"
+                + "Simpler screens, a larger time-left display, and minute-based visual updates.\n\n"
+                + "1.7.0 · August 21, 2026\n"
+                + "Presets, Custom settings, reliable log deletion, additive restore, charts, optional streak controls, vacation pause, and new lotus artwork.\n\n"
+                + "1.6.0 · August 21, 2026\n"
+                + "Private Google Drive and file backup with restore safeguards.\n\n"
+                + "1.5.0 · August 21, 2026\n"
+                + "Meditation Bowl, preparation time, completion message, and resolutions.\n\n"
+                + "1.4.0 · August 18, 2026\n"
+                + "Live screen-dimming control.\n\n"
+                + "1.3.0 · August 18, 2026\n"
+                + "Live chime and vibration controls.\n\n"
+                + "1.2.0 · August 18, 2026\n"
+                + "Resonant sounds and digital or analog timers.\n\n"
+                + "1.1.0 · August 18, 2026\n"
+                + "Lotus launch screen, vibration modes, and reminders.\n\n"
+                + "1.0.0 · August 18, 2026\n"
+                + "Timer, background operation, logs, sharing, and diagnostics.");
+        text.setPadding(dp(20), dp(12), dp(20), dp(12));
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(text);
+        new AlertDialog.Builder(this)
+                .setTitle("Change-log")
+                .setView(scroll)
+                .setPositiveButton("Close", null)
+                .show();
+    }
+
     private void showWhatsNewIfNeeded() {
         SharedPreferences preferences = getSharedPreferences("app_version", MODE_PRIVATE);
         if (preferences.getInt("last_whats_new", 0) >= BuildConfig.VERSION_CODE) {
@@ -1511,14 +1485,11 @@ public final class MainActivity extends Activity {
         }
         preferences.edit().putInt("last_whats_new", BuildConfig.VERSION_CODE).apply();
         new AlertDialog.Builder(this)
-                .setTitle("What’s new in 1.7.0")
-                .setMessage("• Quick 5, Regular 30, Weekly 60, and saved Custom configurations\n"
-                        + "• Individual meditation-log deletion fixed\n"
-                        + "• Additive restore with content duplicate protection\n"
-                        + "• Daily through yearly charts in the new Stats tab\n"
-                        + "• Optional streak counting and reminder encouragement\n"
-                        + "• Longest-ever history and a respectful 30-day vacation pause\n"
-                        + "• New 13-petal purple-lotus ocean icon and in-app artwork")
+                .setTitle("What’s new in 1.8.0")
+                .setMessage("• Cleaner, shorter screens\n"
+                        + "• Larger Time left display\n"
+                        + "• Minute-based visual and notification updates\n"
+                        + "• Exact alarms still protect dings and completion timing")
                 .setPositiveButton("Continue", null)
                 .show();
     }
@@ -1807,27 +1778,6 @@ public final class MainActivity extends Activity {
         option.setChecked(checked);
         option.setPadding(0, dp(8), 0, dp(8));
         return option;
-    }
-
-    private String cueModeLabel(boolean chimesEnabled, boolean vibrationEnabled) {
-        if (chimesEnabled && vibrationEnabled) {
-            return "chimes + vibration";
-        }
-        if (chimesEnabled) {
-            return "chimes";
-        }
-        return vibrationEnabled ? "vibration" : "silent";
-    }
-
-    private String progressText(TimerState state, long realtimeMs) {
-        if (state.preparing) {
-            return "Meditation begins in " + MeditationTimerService.formatCountdown(
-                    state.preparationRemainingMs(realtimeMs));
-        }
-        return "Elapsed " + MeditationTimerService.formatCountdown(
-                state.elapsedActiveMs(realtimeMs))
-                + "  ·  Remaining " + MeditationTimerService.formatCountdown(
-                        state.remainingMs(realtimeMs));
     }
 
     private String formatClockTime(int hour, int minute) {

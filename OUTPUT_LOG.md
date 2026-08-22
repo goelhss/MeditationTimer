@@ -2,6 +2,16 @@
 
 Newest entries go first. Build, test, GitHub, artifact checksum/size, Play upload, and Telegram results are recorded here without secrets.
 
+## 2026-08-22 · 1.8.0 (versionCode 8) · concise timer validation
+
+- Always-required and full JVM/source-policy suites: 63 app tests passed, 0 failed; 2 shared-module tests passed, 0 failed.
+- Android lint: passed with 0 errors and 0 warnings.
+- Signed AAB: `release/MeditationTimer-1.8.0-v8-release.aab`.
+- Size: 2,516,895 bytes.
+- SHA-256: `13b9423ad825f7b6aebe740d71a64ace4fd3316144a5f64b138648ac3c8ba657`.
+- Signature verification: passed with the bundled JDK 17 `jarsigner`.
+- GitHub, Google Play internal testing, store-listing screenshots, foreground-service declaration, and physical-phone smoke test: pending.
+
 ## 2026-08-21 · 1.6.0 (versionCode 6) · private Google backup release
 
 - Clean release source commit: `ba323035909a84064fd247c56166795fa847085c` (`Add private Google Drive backup`).

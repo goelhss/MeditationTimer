@@ -7,9 +7,9 @@ import android.graphics.Paint;
 import android.graphics.RectF;
 import android.view.View;
 
-import java.util.Locale;
-
 public final class AnalogTimerView extends View {
+    private static final int ELAPSED_COLOR = Color.rgb(78, 52, 108);
+    private static final int REMAINING_COLOR = Color.rgb(244, 180, 104);
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF arc = new RectF();
     private long durationMs = TimerSchedule.MINUTE_MS;
@@ -23,8 +23,10 @@ public final class AnalogTimerView extends View {
     public void setTime(long remainingMs, long durationMs) {
         this.durationMs = Math.max(1L, durationMs);
         this.remainingMs = Math.max(0L, Math.min(this.durationMs, remainingMs));
-        setContentDescription("Analog countdown, "
-                + LogTextExporter.formatDuration(this.remainingMs) + " remaining");
+        setContentDescription("Analog timer, "
+                + LogTextExporter.formatDuration(this.durationMs - this.remainingMs)
+                + " elapsed, " + LogTextExporter.formatDuration(this.remainingMs)
+                + " remaining");
         invalidate();
     }
 
@@ -65,35 +67,39 @@ public final class AnalogTimerView extends View {
             canvas.drawLine(innerX, innerY, outerX, outerY, paint);
         }
 
-        float fraction = remainingMs / (float) durationMs;
+        float remainingFraction = remainingMs / (float) durationMs;
+        float elapsedFraction = 1f - remainingFraction;
         arc.set(cx - radius + dp(5), cy - radius + dp(5),
                 cx + radius - dp(5), cy + radius - dp(5));
-        paint.setStrokeWidth(dp(9));
+        paint.setStrokeWidth(dp(18));
         paint.setStrokeCap(Paint.Cap.ROUND);
-        paint.setColor(Color.rgb(87, 56, 158));
-        canvas.drawArc(arc, -90f, 360f * fraction, false, paint);
+        paint.setColor(REMAINING_COLOR);
+        canvas.drawArc(arc, -90f, 360f, false, paint);
+        if (elapsedFraction > 0f) {
+            paint.setColor(ELAPSED_COLOR);
+            canvas.drawArc(arc, -90f, 360f * elapsedFraction, false, paint);
+        }
 
-        double handAngle = Math.toRadians(-90.0 + 360.0 * fraction);
+        double handAngle = Math.toRadians(-90.0 + 360.0 * elapsedFraction);
         float handLength = radius - dp(48);
         paint.setStrokeWidth(dp(7));
-        paint.setColor(Color.rgb(22, 58, 107));
+        paint.setColor(ELAPSED_COLOR);
         canvas.drawLine(cx, cy, cx + (float) Math.cos(handAngle) * handLength,
                 cy + (float) Math.sin(handAngle) * handLength, paint);
         paint.setStyle(Paint.Style.FILL);
         canvas.drawCircle(cx, cy, dp(10), paint);
 
-        long totalSeconds = Math.max(0L, (remainingMs + 999L) / 1000L);
-        long hours = totalSeconds / 3600L;
-        long minutes = totalSeconds % 3600L / 60L;
-        long seconds = totalSeconds % 60L;
-        String label = hours > 0L
-                ? String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
-                : String.format(Locale.US, "%02d:%02d", minutes, seconds);
+        String label = MeditationTimerService.formatMinuteCountdown(remainingMs);
         paint.setTextAlign(Paint.Align.CENTER);
-        paint.setTextSize(dp(25));
+        paint.setTextSize(dp(31));
         paint.setColor(Color.rgb(38, 53, 68));
         paint.setFakeBoldText(true);
-        canvas.drawText(label, cx, cy + radius * 0.48f, paint);
+        canvas.drawText(label, cx, cy + dp(12), paint);
+        paint.setTextSize(dp(13));
+        paint.setColor(ELAPSED_COLOR);
+        canvas.drawText("Elapsed", cx - radius * 0.28f, cy + radius * 0.52f, paint);
+        paint.setColor(REMAINING_COLOR);
+        canvas.drawText("Left", cx + radius * 0.28f, cy + radius * 0.52f, paint);
         paint.setFakeBoldText(false);
         paint.setStrokeCap(Paint.Cap.BUTT);
     }

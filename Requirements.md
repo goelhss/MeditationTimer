@@ -22,8 +22,8 @@
 - While a meditation is running, show a live Dim switch. Apply the brightness change immediately without pausing/restarting and persist it in the active background-service state so activity recreation does not revert the choice.
 - The Timer tab offers Temple Bell, Meditation Bowl, Singing Bowl, Crystal Chime, and the original Classic Ding. Temple Bell is the default; synthesized sounds use full alarm-stream volume, harmonic decay, and audible echo/reverb tails.
 - Preview uses the same selected sound and chime/vibration mode as the running timer.
-- Timer display offers a persistent choice between the existing large digital countdown and a large analog countdown dial. Digital is the default. The analog dial shows 60 tick marks, remaining progress, a moving hand, and a seconds-level countdown.
-- Show both elapsed and remaining time during meditation and refresh the visible countdown at least every 10 seconds; foreground UI currently refreshes every second.
+- Timer display offers a persistent choice between a large digital countdown and a large analog countdown dial. Digital is the default. The analog dial shows 60 tick marks, dark-purple elapsed progress, light-orange remaining progress, a moving hand, and the same minute-based time-left value.
+- Show one large `Time left` countdown during meditation. Refresh the visible value and ongoing notification once per minute to conserve power; exact alarms and elapsed-real-time calculations still protect cue and completion timing.
 - Preparation time defaults to 15 seconds, is configurable in whole seconds (including zero), runs before meditation begins, survives backgrounding/locking, and is excluded from logged meditation duration.
 - Dim screen defaults on and reduces brightness while keeping the countdown visible.
 - Background color is persistent and configurable as Dark Purple (default), Dark Blue, Dark Gray, or Black while preserving readable high-contrast controls.

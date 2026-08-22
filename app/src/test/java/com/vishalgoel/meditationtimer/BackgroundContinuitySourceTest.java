@@ -24,8 +24,26 @@ public final class BackgroundContinuitySourceTest {
         assertTrue(source.contains("EXTRA_PREP_SECONDS"));
         assertTrue(source.contains("state.preparationRemainingMs"));
         assertTrue(source.contains("scheduleRecoveryAt"));
+        assertTrue(source.contains("private static final long TICK_MS = 60_000L"));
+        assertTrue(source.contains("formatMinuteCountdown"));
         assertTrue(store.contains("prep_duration_ms"));
         assertTrue(store.contains("prep_before_ms"));
+    }
+
+    @Test
+    public void visibleTimerRefreshesByMinuteWithoutChangingExactAlarmRecovery()
+            throws IOException {
+        String activity = TestSources.read(
+                "app/src/main/java/com/vishalgoel/meditationtimer/MainActivity.java");
+        String service = TestSources.read(
+                "app/src/main/java/com/vishalgoel/meditationtimer/MeditationTimerService.java");
+
+        assertTrue(activity.contains("private static final long UI_REFRESH_MS = 60_000L"));
+        assertTrue(activity.contains("handler.postDelayed(this, UI_REFRESH_MS)"));
+        assertTrue(activity.contains("formatMinuteCountdown(remaining)"));
+        assertTrue(service.contains("remainingMinute"));
+        assertTrue(service.contains("setExactAndAllowWhileIdle"));
+        assertTrue(service.contains("if (!cues.isEmpty()) {\n                scheduleRecovery();"));
     }
 
     @Test

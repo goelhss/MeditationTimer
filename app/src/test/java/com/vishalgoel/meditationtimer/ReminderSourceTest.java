@@ -29,10 +29,10 @@ public final class ReminderSourceTest {
         String source = TestSources.read(
                 "app/src/main/java/com/vishalgoel/meditationtimer/MainActivity.java");
 
-        assertTrue(source.contains("Meditation Reminder"));
+        assertTrue(source.contains("sectionTitle(\"Reminder\")"));
         assertTrue(source.contains("Remind me to meditate"));
         assertTrue(source.contains("Save reminder"));
-        assertTrue(source.contains("Include streak encouragement in reminders"));
+        assertTrue(source.contains("Streak encouragement"));
         assertTrue(source.contains("ReminderSchedule.Frequency.values()"));
         assertTrue(source.contains("requestNotificationPermissionIfNeeded()"));
     }

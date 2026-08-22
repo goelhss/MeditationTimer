@@ -50,7 +50,7 @@ public final class MeditationTimerService extends Service {
     private static final int NOTIFICATION_TIMER = 2101;
     private static final int RECOVERY_REQUEST = 2102;
     private static final int DEFAULT_LOG_REQUEST = 2103;
-    private static final long TICK_MS = 250L;
+    private static final long TICK_MS = 60_000L;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private TimerStateStore stateStore;
@@ -59,7 +59,7 @@ public final class MeditationTimerService extends Service {
     private PowerManager.WakeLock wakeLock;
     private TimerState state;
     private boolean foreground;
-    private long lastNotificationSecond = Long.MIN_VALUE;
+    private long lastNotificationMinute = Long.MIN_VALUE;
     private long lastPersistRealtimeMs;
     private long completionSoundUntilRealtimeMs;
 
@@ -70,7 +70,7 @@ public final class MeditationTimerService extends Service {
         public void run() {
             processTick();
             if (state != null && state.active) {
-                handler.postDelayed(this, state.paused ? 1000L : TICK_MS);
+                handler.postDelayed(this, TICK_MS);
             }
         }
     };
@@ -259,6 +259,9 @@ public final class MeditationTimerService extends Service {
                 diagnostics.record("timer.ding count=" + cue.dingCount() + " jitter_ms=" + jitter);
             }
             state.processedThroughActiveMs = elapsed;
+            if (!cues.isEmpty()) {
+                scheduleRecovery();
+            }
             if (!cues.isEmpty() || realtime - lastPersistRealtimeMs >= 5000L) {
                 stateStore.save(state);
                 lastPersistRealtimeMs = realtime;
@@ -266,10 +269,10 @@ public final class MeditationTimerService extends Service {
         }
         long visibleRemaining = state.preparing ? state.preparationRemainingMs(realtime)
                 : state.remainingMs(realtime);
-        long remainingSecond = (visibleRemaining + 999L) / 1000L;
-        if (remainingSecond != lastNotificationSecond) {
+        long remainingMinute = (visibleRemaining + 59_999L) / 60_000L;
+        if (remainingMinute != lastNotificationMinute) {
             updateNotification(false);
-            lastNotificationSecond = remainingSecond;
+            lastNotificationMinute = remainingMinute;
         }
     }
 
@@ -359,7 +362,7 @@ public final class MeditationTimerService extends Service {
                 : (state.paused ? "Meditation paused" : "Meditation in progress");
         String text = state.preparing
                 ? "Meditation begins in " + formatCountdown(remaining)
-                : formatCountdown(remaining)
+                : formatMinuteCountdown(remaining)
                         + (state.paused ? " remaining" : " remaining · screen-lock safe");
         PendingIntent open = PendingIntent.getActivity(this, 0,
                 new Intent(this, MainActivity.class), immutableFlags(PendingIntent.FLAG_UPDATE_CURRENT));
@@ -522,6 +525,11 @@ public final class MeditationTimerService extends Service {
             return String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds);
         }
         return String.format(Locale.US, "%02d:%02d", minutes, seconds);
+    }
+
+    public static String formatMinuteCountdown(long remainingMs) {
+        long roundedMs = Math.max(0L, (remainingMs + 59_999L) / 60_000L) * 60_000L;
+        return formatCountdown(roundedMs);
     }
 
     @Override

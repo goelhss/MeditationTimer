@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.0 - 2026-08-22
+
+- Simplified every tab by removing repeated headings, explanatory paragraphs, and duplicate status details.
+- Made the running digital and analog timers larger and reduced the screen to `Time left`, live switches, and session controls.
+- Removed elapsed time and interval/chime summaries from the running screen.
+- Changed visual and ongoing-notification countdown refreshes to once per minute while retaining exact alarm recovery for dings and completion.
+- Reduced Backup & Restore to concise Google Drive and file actions; technical format and size details remain enforced but are no longer shown on the main screen.
+- Moved system status and the change-log behind compact About buttons.
+
 ## 1.7.0 - 2026-08-21
 
 - Added the approved 13-petal purple-lotus ocean artwork as the Android launcher, Play Store, launch, and completion image.
