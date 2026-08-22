@@ -10,7 +10,11 @@ Newest entries go first. Build, test, GitHub, artifact checksum/size, Play uploa
 - Size: 2,516,895 bytes.
 - SHA-256: `13b9423ad825f7b6aebe740d71a64ace4fd3316144a5f64b138648ac3c8ba657`.
 - Signature verification: passed with the bundled JDK 17 `jarsigner`.
-- GitHub, Google Play internal testing, store-listing screenshots, foreground-service declaration, and physical-phone smoke test: pending.
+- GitHub: pushed `main` through `8b9ce5e` and annotated tag `meditation-timer-1.8.0-v8` to `https://github.com/goelhss/MeditationTimer`.
+- Google Play: version `8 (1.8.0)` published to internal testing and verified as **Available to internal testers** on 2026-08-22.
+- Store listing: app name, concise descriptions, approved icon, feature graphic, settings screenshot, and running-timer screenshot are saved and ready to send for review.
+- Play review blocker: required app-content declarations remain incomplete. Play correctly recognizes `FOREGROUND_SERVICE_SPECIAL_USE`, but that declaration requires a public/unlisted demonstration-video URL.
+- Physical-phone smoke test: pending for timer display, chained screen-locked cues/completion, Google backup, and the updated UI.
 
 ## 2026-08-21 · 1.6.0 (versionCode 6) · private Google backup release
 

@@ -11,17 +11,19 @@
 - [x] Regenerate and inspect the concise settings and running-timer Play screenshots.
 - [x] Run always-required, UI, timing, full unit-test, lint, and signed-AAB validation.
 - [x] Reconcile this checklist with the visible task plan before commit, push, or Play submission.
-- [ ] Replace the staged 1.7.0 Play draft with tested 1.8.0 only after final action confirmation.
+- [x] Replace the staged 1.7.0 Play draft with tested 1.8.0 only after final action confirmation.
 
 ## In progress
 
-- Before publishing 1.8.0, update the Play Console foreground-service declaration to the truthfully described meditation-countdown `specialUse` type.
+- Play now detects the 1.8.0 meditation countdown as `FOREGROUND_SERVICE_SPECIAL_USE`; record and publish a public/unlisted demonstration video before saving the required Play declaration.
+- Complete the remaining Play app-content declarations and send the saved default store listing for review. Privacy policy, target audience, data safety, content rating, health classification, and other answers must be supplied truthfully rather than inferred.
 - Before any Play submission on or after 2026-08-31: install the Android 16 SDK, upgrade the compatible Android build toolchain, target API 36, and rerun full/device tests.
 - 2026-08-21: Grant the Play API service account app-level access and verify the narrow one-command internal publisher.
 - 2026-08-18: Run the first physical-phone smoke test from the Google Play internal-testing install.
 
 ## Done
 
+- 2026-08-22: Full-tested, signed, tagged, pushed, and published Meditation Timer `8 (1.8.0)` to internal testing; Play reports it available. Saved the concise default store listing with the approved icon, feature graphic, and two phone screenshots; formal store review is pending the required app-content declarations.
 - 2026-08-21: Replaced the launcher, Google Play, launch-screen, and completion artwork with the approved original 13-petal purple lotus over an ocean; added exact-petal-count and resource-wiring regression checks.
 - 2026-08-21: Added independent streak-counting and streak-reminder controls, persistent current/longest summaries in Logs and exports, a bounded 30-day vacation pause, respectful restart messaging, backup/restore coverage, accessibility descriptions, and a compact two-row tab layout; 61 app tests and Android lint pass.
 - 2026-08-21: Full-tested, signed, tagged, pushed, and published Meditation Timer `6 (1.6.0)` to internal testing; Play reports it available.
